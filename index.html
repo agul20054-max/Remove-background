@@ -135,17 +135,15 @@
   <h1>Remove <em>Background</em><br>in Seconds</h1>
   <p class="hero-sub">Upload any image and our AI removes the background instantly — fully in your browser, completely free, no sign-up required.</p>
 
-  <!-- MODEL LOADING BANNER -->
   <div class="model-banner" id="modelBanner">
     <div class="mini-spin" id="modelSpinner"></div>
     <div style="flex:1">
-      <div style="margin-bottom:6px;color:var(--accent2);font-weight:500" id="modelStatusText">Loading AI model… (first time only, ~20MB)</div>
+      <div style="margin-bottom:6px;color:var(--accent2);font-weight:500" id="modelStatusText">Loading AI model… (first time only, ~25MB)</div>
       <div class="bar-wrap"><div class="bar" id="progressBar"></div></div>
     </div>
     <span id="progressText" style="color:var(--muted);font-size:0.8rem;white-space:nowrap">0%</span>
   </div>
 
-  <!-- UPLOAD ZONE -->
   <div class="upload-container" id="uploadContainer">
     <div class="upload-zone" id="uploadZone">
       <div class="upload-icon">🖼️</div>
@@ -156,7 +154,6 @@
     </div>
   </div>
 
-  <!-- PROCESSING AREA -->
   <div class="processing-area" id="processingArea">
     <div class="status-msg" id="statusMsg"></div>
     <div class="images-grid">
@@ -186,7 +183,7 @@
     <h2 class="section-title" style="font-family:'Syne',sans-serif;font-weight:800;text-align:center;margin-bottom:48px;letter-spacing:-0.8px;">Three steps, zero effort</h2>
     <div class="steps-grid">
       <div class="step"><div class="step-num">1</div><h4>Upload</h4><p>Drag & drop or click to select your photo. Portraits, products, logos — anything works.</p></div>
-      <div class="step"><div class="step-num">2</div><h4>AI Processes</h4><p>The RMBG-1.4 model runs entirely in your browser — your image never leaves your device.</p></div>
+      <div class="step"><div class="step-num">2</div><h4>AI Processes</h4><p>The AI model runs entirely in your browser — your image never leaves your device.</p></div>
       <div class="step"><div class="step-num">3</div><h4>Download</h4><p>Get a perfect transparent PNG in seconds — ready for ecommerce, design, or social media.</p></div>
     </div>
   </div>
@@ -200,7 +197,7 @@
     <div class="feature-card"><div class="feature-icon">🔒</div><h4>100% Private</h4><p>Your images never leave your device. Everything is processed locally, always.</p></div>
     <div class="feature-card"><div class="feature-icon">🆓</div><h4>Completely Free</h4><p>No API key, no account, no credit card. Unlimited use, forever free.</p></div>
     <div class="feature-card"><div class="feature-icon">🖼️</div><h4>Transparent PNG</h4><p>Output is a clean transparent PNG ready to drop into any design tool or project.</p></div>
-    <div class="feature-card"><div class="feature-icon">🎯</div><h4>Pixel-Perfect Edges</h4><p>State-of-the-art RMBG model handles hair, fur, and complex shapes accurately.</p></div>
+    <div class="feature-card"><div class="feature-icon">🎯</div><h4>Pixel-Perfect Edges</h4><p>State-of-the-art AI handles hair, fur, and complex shapes accurately.</p></div>
     <div class="feature-card"><div class="feature-icon">📱</div><h4>Works Everywhere</h4><p>Desktop, mobile, tablet — any modern browser, no app install needed.</p></div>
   </div>
 </section>
@@ -215,13 +212,9 @@
 </footer>
 
 <script type="module">
-  import { env, AutoModel, AutoProcessor, RawImage }
-    from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.0/dist/transformers.min.js';
+  // Use the pipeline API with image-segmentation — the most reliable approach
+  import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.0/dist/transformers.min.js';
 
-  env.allowLocalModels = false;
-  env.useBrowserCache  = true;   // cache model after first download
-
-  // DOM refs
   const modelBanner     = document.getElementById('modelBanner');
   const modelSpinner    = document.getElementById('modelSpinner');
   const modelStatusText = document.getElementById('modelStatusText');
@@ -239,7 +232,8 @@
   const downloadBtn     = document.getElementById('downloadBtn');
   const statusMsg       = document.getElementById('statusMsg');
 
-  let model = null, processor = null, pendingFile = null;
+  let segmenter = null;
+  let pendingFile = null;
 
   function showStatus(msg, type) {
     statusMsg.textContent = msg;
@@ -255,15 +249,12 @@
   }
 
   async function loadModel() {
-    const MODEL = 'briaai/RMBG-1.4';
     try {
-      processor = await AutoProcessor.from_pretrained(MODEL, { progress_callback: onProgress });
-      model     = await AutoModel.from_pretrained(MODEL, {
-        config: { model_type: 'custom' },
-        progress_callback: onProgress
+      // background-removal pipeline — uses RMBG-1.4 correctly via the pipeline API
+      segmenter = await pipeline('image-segmentation', 'briaai/RMBG-1.4', {
+        progress_callback: onProgress,
       });
 
-      // Show ready state
       modelSpinner.style.display = 'none';
       progressBar.style.width = '100%';
       progressText.textContent = '100%';
@@ -273,13 +264,13 @@
 
       if (pendingFile) { processFile(pendingFile); pendingFile = null; }
     } catch (err) {
-      modelStatusText.textContent = '❌ Failed to load model. Please refresh.';
+      modelStatusText.textContent = '❌ Failed to load model. Please refresh the page.';
       modelBanner.style.color = '#ff8080';
       console.error(err);
     }
   }
 
-  // ── Drag & drop / click ───────────────────────────────────────────────────
+  // ── File handling ──────────────────────────────────────────────────────────
   uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
   uploadZone.addEventListener('drop', e => {
@@ -290,9 +281,9 @@
   fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
 
   function handleFile(file) {
-    if (!model) {
+    if (!segmenter) {
       pendingFile = file;
-      showStatus('⏳ Model still loading — your image will be processed automatically once ready.', 'info');
+      showStatus('⏳ Model still loading — your image will process automatically once ready.', 'info');
       return;
     }
     processFile(file);
@@ -310,7 +301,6 @@
   async function processFile(file) {
     const dataUrl = await readDataURL(file);
 
-    // Show UI
     uploadContainer.classList.add('hidden');
     processingArea.classList.add('active');
     originalImg.src = dataUrl;
@@ -322,28 +312,38 @@
     showStatus('🔮 Removing background, please wait…', 'info');
 
     try {
-      const rawImg = await RawImage.fromURL(dataUrl);
-      const inputs = await processor(rawImg);
-      const { output } = await model(inputs);
+      // Run segmentation — returns array of { label, score, mask }
+      const result = await segmenter(dataUrl);
 
-      // Resize mask back to original image dimensions
-      const mask = await RawImage
-        .fromTensor(output[0].mul(255).to('uint8'))
-        .resize(rawImg.width, rawImg.height);
+      // Find the foreground / subject mask
+      // RMBG-1.4 returns a single result with label "foreground"
+      const segment = result[0];
+      const maskCanvas = segment.mask; // this is a canvas element
 
-      // Composite: draw original then apply mask as alpha
+      // Draw original image
       const canvas = resultCanvas;
-      canvas.width  = rawImg.width;
-      canvas.height = rawImg.height;
-      const ctx = canvas.getContext('2d');
-
       const img = new Image();
       await new Promise(res => { img.onload = res; img.src = dataUrl; });
-      ctx.drawImage(img, 0, 0);
 
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < mask.data.length; i++) {
-        imgData.data[i * 4 + 3] = mask.data[i];
+      canvas.width  = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Get pixel data from both
+      const imgData  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // Scale mask to match image size
+      const maskCtx = document.createElement('canvas');
+      maskCtx.width  = canvas.width;
+      maskCtx.height = canvas.height;
+      const mCtx = maskCtx.getContext('2d');
+      mCtx.drawImage(maskCanvas, 0, 0, canvas.width, canvas.height);
+      const maskData = mCtx.getImageData(0, 0, canvas.width, canvas.height);
+
+      // Apply mask: use red channel of mask as alpha
+      for (let i = 0; i < imgData.data.length / 4; i++) {
+        imgData.data[i * 4 + 3] = maskData.data[i * 4]; // R channel = mask intensity
       }
       ctx.putImageData(imgData, 0, 0);
 
@@ -359,7 +359,6 @@
     }
   }
 
-  // ── Download ──────────────────────────────────────────────────────────────
   window.downloadResult = function () {
     const a = document.createElement('a');
     a.href = resultCanvas.toDataURL('image/png');
@@ -367,7 +366,6 @@
     a.click();
   };
 
-  // ── Reset ─────────────────────────────────────────────────────────────────
   window.resetApp = function () {
     uploadContainer.classList.remove('hidden');
     processingArea.classList.remove('active');
