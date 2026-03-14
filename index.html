@@ -200,6 +200,39 @@
   }
   .btn-secondary:hover { border-color: var(--accent); background: rgba(124,109,250,0.08); }
 
+  /* API KEY BANNER */
+  .api-key-banner {
+    max-width: 780px; margin: 0 auto 28px;
+    background: var(--card); border: 1px solid rgba(124,109,250,0.3);
+    border-radius: 16px; padding: 20px 24px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    position: relative; z-index: 1;
+  }
+  .api-key-banner .key-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .api-key-banner .key-text { flex: 1; min-width: 200px; }
+  .api-key-banner .key-text p { font-size: 0.82rem; color: var(--muted); margin-top: 3px; }
+  .api-key-banner .key-text p a { color: var(--accent); text-decoration: none; }
+  .api-key-banner .key-text p a:hover { text-decoration: underline; }
+  .api-key-banner h4 { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; }
+  .key-input-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .key-input {
+    background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); padding: 9px 14px;
+    border-radius: 8px; font-size: 0.88rem; width: 260px;
+    outline: none; transition: border-color .2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .key-input:focus { border-color: var(--accent); }
+  .key-input::placeholder { color: var(--muted); }
+  .key-save-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; border: none; padding: 9px 20px;
+    border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+  }
+  .key-saved { color: var(--success); font-size: 0.82rem; display: none; }
+  .key-saved.show { display: block; }
+
   /* STATUS */
   .status-msg {
     text-align: center; padding: 12px 20px; border-radius: 10px;
@@ -305,6 +338,20 @@
   <div class="hero-badge"><span></span> AI-Powered Background Removal</div>
   <h1>Remove <em>Background</em><br>in Seconds</h1>
   <p class="hero-sub">Upload any image and our AI will instantly erase the background with pixel-perfect precision. 100% automatic, completely free.</p>
+
+  <!-- API KEY SETUP -->
+  <div class="api-key-banner" id="apiKeyBanner">
+    <div class="key-icon">🔑</div>
+    <div class="key-text">
+      <h4>Enter your remove.bg API Key</h4>
+      <p>Free key (50 images/month) at <a href="https://www.remove.bg/api" target="_blank">remove.bg/api</a> — stored only in your browser.</p>
+    </div>
+    <div class="key-input-row">
+      <input type="password" class="key-input" id="apiKeyInput" placeholder="Paste API key here…" />
+      <button class="key-save-btn" onclick="saveApiKey()">Save Key</button>
+      <span class="key-saved" id="keySaved">✓ Saved!</span>
+    </div>
+  </div>
 
   <!-- UPLOAD ZONE -->
   <div class="upload-container" id="uploadContainer">
@@ -427,8 +474,31 @@
   const processingLabel = document.getElementById('processingLabel');
   const downloadBtn = document.getElementById('downloadBtn');
   const statusMsg = document.getElementById('statusMsg');
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const keySaved = document.getElementById('keySaved');
 
   let resultDataUrl = null;
+
+  // Load saved key on startup
+  window.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('removebg_api_key');
+    if (saved) {
+      apiKeyInput.value = saved;
+      keySaved.classList.add('show');
+    }
+  });
+
+  function saveApiKey() {
+    const key = apiKeyInput.value.trim();
+    if (!key) return;
+    localStorage.setItem('removebg_api_key', key);
+    keySaved.classList.add('show');
+    setTimeout(() => keySaved.classList.remove('show'), 2500);
+  }
+
+  function getApiKey() {
+    return (apiKeyInput.value.trim()) || localStorage.getItem('removebg_api_key') || '';
+  }
 
   // Drag & drop
   uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
@@ -446,126 +516,70 @@
   }
 
   function handleFile(file) {
+    const key = getApiKey();
+    if (!key) {
+      apiKeyInput.focus();
+      showStatus('⚠️ Please enter your remove.bg API key first (see above).', 'error');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async e => {
       const dataUrl = e.target.result;
-      const base64 = dataUrl.split(',')[1];
-      const mimeType = file.type;
 
-      // Show UI
+      // Show processing UI
       uploadContainer.classList.add('hidden');
       processingArea.classList.add('active');
       originalImg.src = dataUrl;
       resultImg.style.display = 'none';
       resultPlaceholder.style.display = 'flex';
       spinner.style.display = 'block';
-      processingLabel.textContent = 'Processing your image…';
+      processingLabel.textContent = 'Removing background…';
       downloadBtn.disabled = true;
       resultDataUrl = null;
-      showStatus('🔮 AI is analyzing your image…', 'info');
+      showStatus('🔮 AI is removing the background…', 'info');
 
       try {
-        await removeBackground(base64, mimeType, dataUrl);
+        await removeBackground(file, key);
       } catch (err) {
         spinner.style.display = 'none';
         processingLabel.textContent = 'Something went wrong.';
-        showStatus('❌ Error: ' + (err.message || 'Failed to process image'), 'error');
+        showStatus('❌ ' + (err.message || 'Failed to process image'), 'error');
       }
     };
     reader.readAsDataURL(file);
   }
 
-  async function removeBackground(base64, mimeType, originalDataUrl) {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+  async function removeBackground(file, apiKey) {
+    const formData = new FormData();
+    formData.append('image_file', file);
+    formData.append('size', 'auto');
+
+    const response = await fetch('https://api.remove.bg/v1.0/removebg', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: mimeType, data: base64 }
-            },
-            {
-              type: 'text',
-              text: `Analyze this image and describe it precisely for background removal. Return ONLY a JSON object (no markdown, no backticks) with these fields:
-{
-  "subject": "brief description of the main subject",
-  "background": "brief description of the background",
-  "complexity": "simple|medium|complex",
-  "suggestion": "one sentence tip for best results",
-  "canProcess": true
-}
-Respond with only the raw JSON object.`
-            }
-          ]
-        }]
-      })
+      headers: { 'X-Api-Key': apiKey },
+      body: formData
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error?.message || 'API error');
+      let errMsg = `Error ${response.status}`;
+      try {
+        const errData = await response.json();
+        errMsg = errData.errors?.[0]?.title || errMsg;
+      } catch {}
+      if (response.status === 402) errMsg = 'No credits left. Get more at remove.bg.';
+      if (response.status === 403) errMsg = 'Invalid API key. Check your key at remove.bg.';
+      throw new Error(errMsg);
     }
 
-    const data = await response.json();
-    const text = data.content.map(c => c.text || '').join('');
+    const blob = await response.blob();
+    resultDataUrl = URL.createObjectURL(blob);
 
-    let analysis;
-    try {
-      const clean = text.replace(/```json|```/g, '').trim();
-      analysis = JSON.parse(clean);
-    } catch {
-      analysis = { subject: 'subject', background: 'background', complexity: 'medium', suggestion: '', canProcess: true };
-    }
-
-    // Since actual pixel-manipulation requires a dedicated BG removal API,
-    // we simulate the result by showing the original with a checkered overlay + subject label
-    // and use canvas to create a "processed" version with desaturated background
-    showStatus(`✨ Detected: ${analysis.subject} on ${analysis.background}`, 'success');
-
-    // Canvas-based effect: isolate by converting BG area to transparent using edge-blend simulation
-    const canvas = document.createElement('canvas');
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-
-      // Apply a soft vignette mask to simulate BG removal (demo effect)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const d = imageData.data;
-      const cx = canvas.width / 2, cy = canvas.height / 2;
-      const maxDist = Math.sqrt(cx * cx + cy * cy);
-
-      for (let i = 0; i < d.length; i += 4) {
-        const px = (i / 4) % canvas.width;
-        const py = Math.floor((i / 4) / canvas.width);
-        const dist = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
-        // Simple center-weighted alpha mask
-        const ratio = dist / maxDist;
-        // Only affect pixels that are "edge-like" – outer 20% gets more transparent
-        if (ratio > 0.72) {
-          const fade = Math.max(0, 1 - (ratio - 0.72) / 0.28);
-          d[i + 3] = Math.min(d[i + 3], Math.round(d[i + 3] * fade));
-        }
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      resultDataUrl = canvas.toDataURL('image/png');
-      resultImg.src = resultDataUrl;
-      resultImg.style.display = 'block';
-      resultPlaceholder.style.display = 'none';
-      downloadBtn.disabled = false;
-      if (analysis.suggestion) {
-        showStatus(`💡 ${analysis.suggestion}`, 'info');
-      }
-    };
-    img.src = originalDataUrl;
+    resultImg.src = resultDataUrl;
+    resultImg.style.display = 'block';
+    resultPlaceholder.style.display = 'none';
+    downloadBtn.disabled = false;
+    showStatus('✅ Background removed successfully!', 'success');
   }
 
   function downloadResult() {
