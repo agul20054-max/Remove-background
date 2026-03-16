@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Remove Background – AI-Powered</title>
+<title>Remove Background – AI-Powered (No API Key)</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/vision@0.10.3/vision_bundle.js" crossorigin="anonymous"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -13,6 +14,7 @@
     --accent: #7c6dfa; --accent2: #c084fc;
     --accent-glow: rgba(124,109,250,0.35);
     --text: #f0eeff; --muted: #8884a8; --success: #34d399;
+    --error: #ff6b6b;
   }
   html { scroll-behavior: smooth; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
@@ -33,28 +35,6 @@
   h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .hero-sub { font-size: 1.15rem; color: var(--muted); max-width: 520px; margin: 0 auto 52px; line-height: 1.65; }
 
-  /* HF Token banner */
-  .token-banner {
-    max-width: 780px; margin: 0 auto 24px;
-    background: var(--card); border: 1px solid rgba(124,109,250,0.3);
-    border-radius: 16px; padding: 20px 24px;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-    position: relative; z-index: 1;
-  }
-  .token-banner .t-icon { font-size: 1.5rem; flex-shrink: 0; }
-  .token-banner .t-body { flex: 1; min-width: 200px; }
-  .token-banner h4 { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
-  .token-banner p { font-size: 0.8rem; color: var(--muted); }
-  .token-banner a { color: var(--accent); text-decoration: none; }
-  .token-banner a:hover { text-decoration: underline; }
-  .token-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
-  .token-input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 9px 14px; border-radius: 8px; font-size: 0.85rem; width: 280px; outline: none; transition: border-color .2s; font-family: 'DM Sans', sans-serif; }
-  .token-input:focus { border-color: var(--accent); }
-  .token-input::placeholder { color: var(--muted); }
-  .token-save { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 9px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
-  .token-ok { color: var(--success); font-size: 0.82rem; display: none; }
-  .token-ok.show { display: inline; }
-
   .upload-container { max-width: 780px; margin: 0 auto; position: relative; z-index: 1; }
   .upload-zone { border: 2px dashed rgba(124,109,250,0.4); border-radius: 20px; background: var(--card); padding: 56px 40px; cursor: pointer; transition: border-color .25s, box-shadow .25s; position: relative; overflow: hidden; }
   .upload-zone::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(124,109,250,0.04), rgba(192,132,252,0.04)); opacity: 0; transition: opacity .25s; }
@@ -66,17 +46,17 @@
   .upload-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 12px 30px; border-radius: 10px; font-size: 0.95rem; font-weight: 500; cursor: pointer; display: inline-block; }
   #fileInput { display: none; }
 
-  .processing-area { display: none; max-width: 780px; margin: 0 auto; }
+  .processing-area { display: none; max-width: 900px; margin: 0 auto; }
   .processing-area.active { display: block; }
   .images-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-  .img-panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .img-panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; position: relative; }
   .img-panel-label { padding: 12px 16px; font-size: 0.8rem; font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
   .img-panel-label .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-  .img-panel img { width: 100%; display: block; max-height: 360px; object-fit: contain; background: repeating-conic-gradient(#1c1c28 0% 25%, #14141e 0% 50%) 0 0 / 18px 18px; }
+  .img-panel img, .img-panel canvas { width: 100%; display: block; max-height: 400px; object-fit: contain; background: repeating-conic-gradient(#1c1c28 0% 25%, #14141e 0% 50%) 0 0 / 18px 18px; }
   .img-placeholder { height: 300px; display: flex; align-items: center; justify-content: center; background: repeating-conic-gradient(#1c1c28 0% 25%, #14141e 0% 50%) 0 0 / 18px 18px; color: var(--muted); font-size: 0.85rem; flex-direction: column; gap: 12px; }
   .spinner { width: 36px; height: 36px; border: 3px solid rgba(124,109,250,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .action-row { display: flex; gap: 12px; justify-content: center; }
+  .action-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
   .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 13px 32px; border-radius: 10px; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: transform .15s, box-shadow .15s; }
   .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -86,6 +66,7 @@
   .status-msg.info { background: rgba(124,109,250,0.12); color: var(--accent2); border: 1px solid rgba(124,109,250,0.25); display: block; }
   .status-msg.error { background: rgba(255,80,80,0.1); color: #ff8080; border: 1px solid rgba(255,80,80,0.25); display: block; }
   .status-msg.success { background: rgba(52,211,153,0.1); color: var(--success); border: 1px solid rgba(52,211,153,0.25); display: block; }
+  .status-msg.loading { background: rgba(124,109,250,0.12); color: var(--accent2); border: 1px solid rgba(124,109,250,0.25); display: block; }
 
   .features { padding: 80px 48px; max-width: 1100px; margin: 0 auto; }
   .section-label { text-align: center; font-size: 0.78rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
@@ -105,6 +86,29 @@
   .step p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
   footer { padding: 40px 48px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 0.82rem; }
   .hidden { display: none !important; }
+  
+  .paste-area { 
+    max-width: 780px; margin: 20px auto 0; 
+    background: var(--card); border: 1px dashed var(--border); 
+    border-radius: 12px; padding: 16px; 
+    text-align: center; color: var(--muted); font-size: 0.85rem;
+  }
+  .paste-area:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+  
+  .quality-selector { 
+    display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .quality-btn { 
+    background: var(--card); border: 1px solid var(--border); 
+    color: var(--text); padding: 8px 16px; border-radius: 8px; 
+    cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+  }
+  .quality-btn.active { 
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); 
+    border-color: transparent;
+  }
+  .quality-btn:hover:not(.active) { border-color: var(--accent); }
+
   @media (max-width: 768px) {
     nav { padding: 14px 20px; } .nav-links { display: none; }
     .hero { padding: 120px 20px 60px; }
@@ -112,9 +116,9 @@
     .steps-grid { grid-template-columns: 1fr; } .steps-section { padding: 60px 20px; }
     .images-grid { grid-template-columns: 1fr; }
     footer { flex-direction: column; gap: 12px; text-align: center; }
-    .token-input { width: 100%; }
   }
 </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -130,36 +134,28 @@
 </nav>
 
 <section class="hero">
-  <div class="hero-badge"><span></span> Powered by Hugging Face · Server-Side AI</div>
+  <div class="hero-badge"><span></span> 100% Free · No API Key · Runs in Browser</div>
   <h1>Remove <em>Background</em><br>in Seconds</h1>
-  <p class="hero-sub">Upload any image and our AI removes the background with professional quality — free, fast, no watermarks.</p>
+  <p class="hero-sub">Upload or paste any image and our AI removes the background instantly — completely free, no signup, no watermarks. Powered by MediaPipe.</p>
 
-  <!-- HF Token Setup -->
-  <div class="token-banner" id="tokenBanner">
-    <div class="t-icon">🤗</div>
-    <div class="t-body" style="flex:1">
-      <h4>Enter your free Hugging Face token</h4>
-      <p>
-        Get a free token at <a href="https://huggingface.co/settings/tokens" target="_blank">huggingface.co/settings/tokens</a>
-        (Create → Read token, it's free — no credit card needed).
-        Your token is saved only in your browser.
-      </p>
-      <div class="token-row">
-        <input type="password" class="token-input" id="hfToken" placeholder="hf_xxxxxxxxxxxxxxxxxx" />
-        <button class="token-save" onclick="saveToken()">Save</button>
-        <span class="token-ok" id="tokenOk">✓ Saved!</span>
-      </div>
-    </div>
+  <!-- Quality Selector -->
+  <div class="quality-selector" id="qualitySelector">
+    <button class="quality-btn active" data-mode="fast">⚡ Fast</button>
+    <button class="quality-btn" data-mode="balanced">⚖️ Balanced</button>
+    <button class="quality-btn" data-mode="quality">✨ Best Quality</button>
   </div>
 
   <!-- Upload Zone -->
   <div class="upload-container" id="uploadContainer">
-    <div class="upload-zone" id="uploadZone">
+    <div class="upload-zone" id="uploadZone" tabindex="0">
       <div class="upload-icon">🖼️</div>
       <h3>Drop your image here</h3>
-      <p>Supports JPG, PNG, WEBP up to 10MB</p>
+      <p>Or click to upload — Supports JPG, PNG, WEBP</p>
       <label class="upload-btn" for="fileInput">Upload Image</label>
       <input type="file" id="fileInput" accept="image/*" />
+    </div>
+    <div class="paste-area" id="pasteArea" tabindex="0">
+      💡 Tip: You can also <strong>paste an image</strong> directly (Ctrl+V / Cmd+V)
     </div>
   </div>
 
@@ -175,9 +171,9 @@
         <div class="img-panel-label"><div class="dot"></div>Background Removed</div>
         <div class="img-placeholder" id="resultPlaceholder">
           <div class="spinner"></div>
-          <span id="processingLabel">Processing…</span>
+          <span id="processingLabel">Loading AI model…</span>
         </div>
-        <img id="resultImg" src="" alt="Result" style="display:none" />
+        <canvas id="resultCanvas" style="display:none"></canvas>
       </div>
     </div>
     <div class="action-row">
@@ -192,9 +188,9 @@
     <p class="section-label">How it works</p>
     <h2 class="section-title" style="font-family:'Syne',sans-serif;font-weight:800;text-align:center;margin-bottom:48px;letter-spacing:-0.8px;">Three steps, zero effort</h2>
     <div class="steps-grid">
-      <div class="step"><div class="step-num">1</div><h4>Get Free Token</h4><p>Sign up at Hugging Face (free) and create a read token — takes 60 seconds.</p></div>
-      <div class="step"><div class="step-num">2</div><h4>Upload Image</h4><p>Drop any photo — portrait, product, logo. Our server-side AI does the heavy lifting.</p></div>
-      <div class="step"><div class="step-num">3</div><h4>Download PNG</h4><p>Get a pixel-perfect transparent PNG in seconds. Professional quality, always free.</p></div>
+      <div class="step"><div class="step-num">1</div><h4>Paste or Upload</h4><p>Drop any photo or paste from clipboard — no signup needed.</p></div>
+      <div class="step"><div class="step-num">2</div><h4>AI Processing</h4><p>MediaPipe runs locally in your browser to detect and remove backgrounds.</p></div>
+      <div class="step"><div class="step-num">3</div><h4>Download PNG</h4><p>Get a pixel-perfect transparent PNG instantly. Free forever.</p></div>
     </div>
   </div>
 </section>
@@ -203,12 +199,12 @@
   <p class="section-label">Why choose us</p>
   <h2 class="section-title">Professional quality, zero cost</h2>
   <div class="features-grid">
-    <div class="feature-card"><div class="feature-icon">🎯</div><h4>Pro-Grade AI</h4><p>Uses the same powerful rembg model trusted by professionals worldwide — runs on GPU servers.</p></div>
-    <div class="feature-card"><div class="feature-icon">🆓</div><h4>Completely Free</h4><p>Hugging Face free tier gives you plenty of API calls. No credit card, no subscription.</p></div>
-    <div class="feature-card"><div class="feature-icon">⚡</div><h4>Fast Results</h4><p>Server-side GPU processing means high accuracy results in just a few seconds.</p></div>
-    <div class="feature-card"><div class="feature-icon">🖼️</div><h4>Transparent PNG</h4><p>Clean transparent PNG output — ready for Photoshop, Figma, Canva, or any tool.</p></div>
-    <div class="feature-card"><div class="feature-icon">👤</div><h4>Portraits & Products</h4><p>Handles hair, fur, fine edges — optimized for people, products, and complex scenes.</p></div>
-    <div class="feature-card"><div class="feature-icon">📱</div><h4>Works Everywhere</h4><p>Any browser, any device — desktop, mobile, or tablet. No install needed.</p></div>
+    <div class="feature-card"><div class="feature-icon">🔒</div><h4>100% Private</h4><p>All processing happens in your browser. Your images never leave your device.</p></div>
+    <div class="feature-card"><div class="feature-icon">🆓</div><h4>Completely Free</h4><p>No API keys, no subscriptions, no limits. Use it as much as you want.</p></div>
+    <div class="feature-card"><div class="feature-icon">⚡</div><h4>Instant Results</h4><p>GPU-accelerated processing runs locally — no server delays.</p></div>
+    <div class="feature-card"><div class="feature-icon">🖼️</div><h4>Transparent PNG</h4><p>Clean transparent PNG output — ready for Photoshop, Figma, Canva.</p></div>
+    <div class="feature-card"><div class="feature-icon">📋</div><h4>Paste Support</h4><p>Just copy any image and paste it directly. Fastest workflow ever.</p></div>
+    <div class="feature-card"><div class="feature-icon">📱</div><h4>Works Everywhere</h4><p>Any modern browser on desktop or mobile. No installation needed.</p></div>
   </div>
 </section>
 
@@ -222,35 +218,63 @@
 </footer>
 
 <script>
-  const uploadZone      = document.getElementById('uploadZone');
-  const fileInput       = document.getElementById('fileInput');
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
   const uploadContainer = document.getElementById('uploadContainer');
-  const processingArea  = document.getElementById('processingArea');
-  const originalImg     = document.getElementById('originalImg');
-  const resultImg       = document.getElementById('resultImg');
+  const processingArea = document.getElementById('processingArea');
+  const originalImg = document.getElementById('originalImg');
+  const resultCanvas = document.getElementById('resultCanvas');
   const resultPlaceholder = document.getElementById('resultPlaceholder');
   const processingLabel = document.getElementById('processingLabel');
-  const downloadBtn     = document.getElementById('downloadBtn');
-  const statusMsg       = document.getElementById('statusMsg');
-  const hfTokenInput    = document.getElementById('hfToken');
-  const tokenOk         = document.getElementById('tokenOk');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const statusMsg = document.getElementById('statusMsg');
+  const pasteArea = document.getElementById('pasteArea');
+  const qualityBtns = document.querySelectorAll('.quality-btn');
 
-  let resultObjectUrl = null;
+  let imageSegmenter = null;
+  let currentImage = null;
+  let processingMode = 'fast';
 
-  // Load saved token
-  const savedToken = localStorage.getItem('hf_token');
-  if (savedToken) { hfTokenInput.value = savedToken; tokenOk.classList.add('show'); }
+  // Quality/Mode selector
+  qualityBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      qualityBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      processingMode = btn.dataset.mode;
+    });
+  });
 
-  function saveToken() {
-    const t = hfTokenInput.value.trim();
-    if (!t) return;
-    localStorage.setItem('hf_token', t);
-    tokenOk.classList.add('show');
-    setTimeout(() => tokenOk.classList.remove('show'), 2500);
-  }
+  // Initialize MediaPipe Image Segmenter
+  async function initializeSegmenter() {
+    try {
+      const { ImageSegmenter, SegmentationMask, FilesetResolver } = window;
+      
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+      );
+      
+      // Configure based on mode
+      const delegate = processingMode === 'fast' ? 'GPU' : 'CPU';
+      const modelAssetPath = processingMode === 'quality' 
+        ? "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite"
+        : "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite";
 
-  function getToken() {
-    return hfTokenInput.value.trim() || localStorage.getItem('hf_token') || '';
+      imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: modelAssetPath,
+          delegate: delegate
+        },
+        runningMode: "IMAGE",
+        outputCategoryMask: true,
+        outputConfidenceMasks: false
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize segmenter:", error);
+      showStatus("Failed to load AI model. Please refresh the page.", "error");
+      return false;
+    }
   }
 
   function showStatus(msg, type) {
@@ -259,107 +283,134 @@
   }
 
   // Drag & drop
-  uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragover', e => { 
+    e.preventDefault(); 
+    uploadZone.classList.add('drag-over'); 
+  });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
   uploadZone.addEventListener('drop', e => {
-    e.preventDefault(); uploadZone.classList.remove('drag-over');
+    e.preventDefault(); 
+    uploadZone.classList.remove('drag-over');
     const f = e.dataTransfer.files[0];
-    if (f?.type.startsWith('image/')) handleFile(f);
+    if (f?.type.startsWith('image/')) processImage(f);
   });
-  fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+  fileInput.addEventListener('change', () => { 
+    if (fileInput.files[0]) processImage(fileInput.files[0]); 
+  });
+  uploadZone.addEventListener('click', () => fileInput.click());
 
-  function handleFile(file) {
-    const token = getToken();
-    if (!token) {
-      hfTokenInput.focus();
-      showStatus('⚠️ Please enter your Hugging Face token first.', 'error');
-      return;
+  // Paste support
+  document.addEventListener('paste', async (e) => {
+    const items = e.clipboardData.items;
+    for (let item of items) {
+      if (item.type.startsWith('image/')) {
+        const blob = item.getAsFile();
+        processImage(blob);
+        break;
+      }
+    }
+  });
+
+  pasteArea.addEventListener('click', () => {
+    showStatus("Press Ctrl+V (or Cmd+V) to paste an image", "info");
+  });
+
+  async function processImage(file) {
+    // Show processing UI
+    uploadContainer.classList.add('hidden');
+    processingArea.classList.add('active');
+    
+    // Load image
+    const imgUrl = URL.createObjectURL(file);
+    originalImg.src = imgUrl;
+    currentImage = await loadImage(imgUrl);
+    
+    resultCanvas.style.display = 'none';
+    resultPlaceholder.style.display = 'flex';
+    processingLabel.textContent = 'Loading AI model…';
+    downloadBtn.disabled = true;
+    showStatus('🚀 Initializing AI model (one-time setup)…', 'loading');
+
+    // Initialize segmenter if needed
+    if (!imageSegmenter) {
+      const initialized = await initializeSegmenter();
+      if (!initialized) return;
     }
 
-    const reader = new FileReader();
-    reader.onload = e => {
-      const dataUrl = e.target.result;
-      uploadContainer.classList.add('hidden');
-      processingArea.classList.add('active');
-      originalImg.src = dataUrl;
-      resultImg.style.display = 'none';
-      resultPlaceholder.style.display = 'flex';
-      processingLabel.textContent = 'Removing background…';
-      downloadBtn.disabled = true;
-      if (resultObjectUrl) { URL.revokeObjectURL(resultObjectUrl); resultObjectUrl = null; }
-      showStatus('🔮 AI is processing your image…', 'info');
-      removeBackground(file, token);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async function removeBackground(file, token) {
-    // Use the Hugging Face Inference API with the rembg space
-    // This endpoint accepts image bytes and returns a PNG with transparent background
-    const API_URL = 'https://api-inference.huggingface.co/models/briaai/RMBG-1.4';
+    processingLabel.textContent = 'Removing background…';
+    showStatus('🎨 Removing background…', 'loading');
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
-
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': file.type || 'image/jpeg',
-          'Accept': 'image/png',
-        },
-        body: arrayBuffer,
-      });
-
-      if (response.status === 503) {
-        // Model is loading — wait and retry
-        showStatus('⏳ Model is warming up on Hugging Face servers… retrying in 20s', 'info');
-        await new Promise(r => setTimeout(r, 20000));
-        return removeBackground(file, token);
+      // Perform segmentation
+      const results = await imageSegmenter.segment(currentImage);
+      const mask = results.categoryMask;
+      
+      // Create output canvas
+      const canvas = resultCanvas;
+      canvas.width = currentImage.width;
+      canvas.height = currentImage.height;
+      const ctx = canvas.getContext('2d');
+      
+      // Draw original image
+      ctx.drawImage(currentImage, 0, 0);
+      
+      // Get image data
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Get mask data
+      const maskData = mask.getAsFloat32Array();
+      
+      // Apply mask to alpha channel
+      // MediaPipe selfie segmenter: 0 = background, 1 = person
+      // We need to smooth the edges slightly for better quality
+      for (let i = 0; i < maskData.length; i++) {
+        const maskValue = maskData[i];
+        // Smooth threshold for better edges
+        let alpha = maskValue > 0.1 ? 255 : 0;
+        
+        // Optional: feather edges for quality mode
+        if (processingMode === 'quality' && maskValue > 0.05 && maskValue <= 0.1) {
+          alpha = (maskValue - 0.05) / 0.05 * 255;
+        }
+        
+        data[i * 4 + 3] = alpha; // Set alpha channel
       }
-
-      if (!response.ok) {
-        let msg = `Error ${response.status}`;
-        try {
-          const j = await response.json();
-          msg = j.error || msg;
-        } catch {}
-        if (response.status === 401) msg = 'Invalid token. Check your Hugging Face token.';
-        throw new Error(msg);
-      }
-
-      const blob = await response.blob();
-
-      // Check if response is actually an image
-      if (!blob.type.startsWith('image/')) {
-        // HF sometimes returns JSON error as 200
-        const text = await blob.text();
-        let parsed;
-        try { parsed = JSON.parse(text); } catch {}
-        throw new Error(parsed?.error || 'Unexpected response from server');
-      }
-
-      resultObjectUrl = URL.createObjectURL(blob);
-      resultImg.src = resultObjectUrl;
-      resultImg.style.display = 'block';
+      
+      // Put data back
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Show result
+      resultCanvas.style.display = 'block';
       resultPlaceholder.style.display = 'none';
       downloadBtn.disabled = false;
       showStatus('✅ Background removed successfully!', 'success');
-
-    } catch (err) {
-      resultPlaceholder.style.display = 'flex';
-      processingLabel.textContent = 'Something went wrong.';
-      showStatus('❌ ' + (err.message || 'Failed to process image'), 'error');
-      console.error(err);
+      
+      // Cleanup
+      results.close();
+      
+    } catch (error) {
+      console.error("Processing error:", error);
+      processingLabel.textContent = 'Processing failed';
+      showStatus('❌ Error processing image. Try a different image.', 'error');
     }
   }
 
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
   window.downloadResult = function() {
-    if (!resultObjectUrl) return;
-    const a = document.createElement('a');
-    a.href = resultObjectUrl;
-    a.download = 'removed-background.png';
-    a.click();
+    if (!resultCanvas) return;
+    const link = document.createElement('a');
+    link.download = 'removed-background.png';
+    link.href = resultCanvas.toDataURL('image/png');
+    link.click();
   };
 
   window.resetApp = function() {
@@ -369,9 +420,15 @@
     statusMsg.className = 'status-msg';
     statusMsg.textContent = '';
     downloadBtn.disabled = true;
+    resultCanvas.style.display = 'none';
+    originalImg.src = '';
+    currentImage = null;
   };
 
-  window.saveToken = saveToken;
+  // Handle window resize for canvas
+  window.addEventListener('resize', () => {
+    // Canvas maintains aspect ratio automatically via CSS
+  });
 </script>
 </body>
 </html>
