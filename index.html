@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Remove Background – AI-Powered (No API Key)</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/vision@0.10.3/vision_bundle.js" crossorigin="anonymous"></script>
+<!-- TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<!-- BodyPix -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -92,22 +95,20 @@
     background: var(--card); border: 1px dashed var(--border); 
     border-radius: 12px; padding: 16px; 
     text-align: center; color: var(--muted); font-size: 0.85rem;
+    cursor: pointer;
   }
-  .paste-area:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+  .paste-area:hover { border-color: var(--accent); color: var(--text); }
   
-  .quality-selector { 
-    display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;
+  .model-status {
+    position: fixed; bottom: 20px; right: 20px; 
+    background: var(--card); border: 1px solid var(--border);
+    padding: 12px 16px; border-radius: 8px; font-size: 0.8rem;
+    color: var(--muted); z-index: 1000;
+    display: flex; align-items: center; gap: 8px;
   }
-  .quality-btn { 
-    background: var(--card); border: 1px solid var(--border); 
-    color: var(--text); padding: 8px 16px; border-radius: 8px; 
-    cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
-  }
-  .quality-btn.active { 
-    background: linear-gradient(135deg, var(--accent), var(--accent2)); 
-    border-color: transparent;
-  }
-  .quality-btn:hover:not(.active) { border-color: var(--accent); }
+  .model-status.ready { color: var(--success); border-color: var(--success); }
+  .model-status.loading { color: var(--accent2); border-color: var(--accent); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 
   @media (max-width: 768px) {
     nav { padding: 14px 20px; } .nav-links { display: none; }
@@ -116,9 +117,9 @@
     .steps-grid { grid-template-columns: 1fr; } .steps-section { padding: 60px 20px; }
     .images-grid { grid-template-columns: 1fr; }
     footer { flex-direction: column; gap: 12px; text-align: center; }
+    .model-status { left: 20px; right: 20px; bottom: 10px; }
   }
 </style>
-<base target="_blank">
 </head>
 <body>
 
@@ -136,14 +137,7 @@
 <section class="hero">
   <div class="hero-badge"><span></span> 100% Free · No API Key · Runs in Browser</div>
   <h1>Remove <em>Background</em><br>in Seconds</h1>
-  <p class="hero-sub">Upload or paste any image and our AI removes the background instantly — completely free, no signup, no watermarks. Powered by MediaPipe.</p>
-
-  <!-- Quality Selector -->
-  <div class="quality-selector" id="qualitySelector">
-    <button class="quality-btn active" data-mode="fast">⚡ Fast</button>
-    <button class="quality-btn" data-mode="balanced">⚖️ Balanced</button>
-    <button class="quality-btn" data-mode="quality">✨ Best Quality</button>
-  </div>
+  <p class="hero-sub">Upload or paste any image and our AI removes the background instantly — completely free, no signup, no watermarks. Powered by TensorFlow.js.</p>
 
   <!-- Upload Zone -->
   <div class="upload-container" id="uploadContainer">
@@ -154,7 +148,7 @@
       <label class="upload-btn" for="fileInput">Upload Image</label>
       <input type="file" id="fileInput" accept="image/*" />
     </div>
-    <div class="paste-area" id="pasteArea" tabindex="0">
+    <div class="paste-area" id="pasteArea">
       💡 Tip: You can also <strong>paste an image</strong> directly (Ctrl+V / Cmd+V)
     </div>
   </div>
@@ -189,7 +183,7 @@
     <h2 class="section-title" style="font-family:'Syne',sans-serif;font-weight:800;text-align:center;margin-bottom:48px;letter-spacing:-0.8px;">Three steps, zero effort</h2>
     <div class="steps-grid">
       <div class="step"><div class="step-num">1</div><h4>Paste or Upload</h4><p>Drop any photo or paste from clipboard — no signup needed.</p></div>
-      <div class="step"><div class="step-num">2</div><h4>AI Processing</h4><p>MediaPipe runs locally in your browser to detect and remove backgrounds.</p></div>
+      <div class="step"><div class="step-num">2</div><h4>AI Processing</h4><p>TensorFlow.js runs locally in your browser using BodyPix model.</p></div>
       <div class="step"><div class="step-num">3</div><h4>Download PNG</h4><p>Get a pixel-perfect transparent PNG instantly. Free forever.</p></div>
     </div>
   </div>
@@ -217,6 +211,11 @@
   </div>
 </footer>
 
+<div class="model-status loading" id="modelStatus">
+  <span class="status-dot"></span>
+  <span id="modelStatusText">Loading AI Model...</span>
+</div>
+
 <script>
   const uploadZone = document.getElementById('uploadZone');
   const fileInput = document.getElementById('fileInput');
@@ -228,54 +227,45 @@
   const processingLabel = document.getElementById('processingLabel');
   const downloadBtn = document.getElementById('downloadBtn');
   const statusMsg = document.getElementById('statusMsg');
-  const pasteArea = document.getElementById('pasteArea');
-  const qualityBtns = document.querySelectorAll('.quality-btn');
+  const modelStatus = document.getElementById('modelStatus');
+  const modelStatusText = document.getElementById('modelStatusText');
 
-  let imageSegmenter = null;
-  let currentImage = null;
-  let processingMode = 'fast';
+  let net = null;
+  let isModelLoading = true;
 
-  // Quality/Mode selector
-  qualityBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      qualityBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      processingMode = btn.dataset.mode;
-    });
-  });
-
-  // Initialize MediaPipe Image Segmenter
-  async function initializeSegmenter() {
+  // Initialize BodyPix model on page load
+  async function initModel() {
     try {
-      const { ImageSegmenter, SegmentationMask, FilesetResolver } = window;
+      console.log('Loading BodyPix model...');
+      modelStatusText.textContent = 'Loading AI Model (20MB)...';
       
-      const vision = await FilesetResolver.forVisionTasks(
-        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-      );
-      
-      // Configure based on mode
-      const delegate = processingMode === 'fast' ? 'GPU' : 'CPU';
-      const modelAssetPath = processingMode === 'quality' 
-        ? "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite"
-        : "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite";
-
-      imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: modelAssetPath,
-          delegate: delegate
-        },
-        runningMode: "IMAGE",
-        outputCategoryMask: true,
-        outputConfidenceMasks: false
+      // Load BodyPix with medium accuracy (good balance)
+      net = await bodyPix.load({
+        architecture: 'MobileNetV1',
+        outputStride: 16,
+        multiplier: 0.75,
+        quantBytes: 2
       });
       
-      return true;
+      isModelLoading = false;
+      modelStatus.classList.remove('loading');
+      modelStatus.classList.add('ready');
+      modelStatusText.textContent = 'AI Ready';
+      console.log('Model loaded successfully');
+      
+      setTimeout(() => {
+        modelStatus.style.opacity = '0';
+      }, 3000);
+      
     } catch (error) {
-      console.error("Failed to initialize segmenter:", error);
-      showStatus("Failed to load AI model. Please refresh the page.", "error");
-      return false;
+      console.error('Failed to load model:', error);
+      modelStatusText.textContent = 'Model Failed - Refresh';
+      showStatus('Failed to load AI model. Please check your internet connection and refresh.', 'error');
     }
   }
+
+  // Start loading model immediately
+  initModel();
 
   function showStatus(msg, type) {
     statusMsg.textContent = msg;
@@ -311,11 +301,17 @@
     }
   });
 
-  pasteArea.addEventListener('click', () => {
-    showStatus("Press Ctrl+V (or Cmd+V) to paste an image", "info");
-  });
-
   async function processImage(file) {
+    if (isModelLoading) {
+      showStatus('⏳ Please wait - AI model is still loading (20MB download)...', 'info');
+      return;
+    }
+
+    if (!net) {
+      showStatus('❌ AI model failed to load. Please refresh the page.', 'error');
+      return;
+    }
+
     // Show processing UI
     uploadContainer.classList.add('hidden');
     processingArea.classList.add('active');
@@ -323,86 +319,73 @@
     // Load image
     const imgUrl = URL.createObjectURL(file);
     originalImg.src = imgUrl;
-    currentImage = await loadImage(imgUrl);
     
     resultCanvas.style.display = 'none';
     resultPlaceholder.style.display = 'flex';
-    processingLabel.textContent = 'Loading AI model…';
+    processingLabel.textContent = 'Analyzing image...';
     downloadBtn.disabled = true;
-    showStatus('🚀 Initializing AI model (one-time setup)…', 'loading');
-
-    // Initialize segmenter if needed
-    if (!imageSegmenter) {
-      const initialized = await initializeSegmenter();
-      if (!initialized) return;
-    }
-
-    processingLabel.textContent = 'Removing background…';
-    showStatus('🎨 Removing background…', 'loading');
+    showStatus('🎨 Removing background... This may take a few seconds.', 'loading');
 
     try {
+      // Wait for image to load
+      await new Promise((resolve, reject) => {
+        originalImg.onload = resolve;
+        originalImg.onerror = reject;
+      });
+
+      processingLabel.textContent = 'Segmenting person...';
+
       // Perform segmentation
-      const results = await imageSegmenter.segment(currentImage);
-      const mask = results.categoryMask;
-      
+      const segmentation = await net.segmentPerson(originalImg, {
+        internalResolution: 'medium',
+        segmentationThreshold: 0.7,
+        maxDetections: 1
+      });
+
+      processingLabel.textContent = 'Creating transparent background...';
+
       // Create output canvas
       const canvas = resultCanvas;
-      canvas.width = currentImage.width;
-      canvas.height = currentImage.height;
+      canvas.width = originalImg.naturalWidth;
+      canvas.height = originalImg.naturalHeight;
       const ctx = canvas.getContext('2d');
-      
+
       // Draw original image
-      ctx.drawImage(currentImage, 0, 0);
-      
+      ctx.drawImage(originalImg, 0, 0);
+
       // Get image data
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
-      
-      // Get mask data
-      const maskData = mask.getAsFloat32Array();
-      
+      const mask = segmentation.data;
+
       // Apply mask to alpha channel
-      // MediaPipe selfie segmenter: 0 = background, 1 = person
-      // We need to smooth the edges slightly for better quality
-      for (let i = 0; i < maskData.length; i++) {
-        const maskValue = maskData[i];
-        // Smooth threshold for better edges
-        let alpha = maskValue > 0.1 ? 255 : 0;
-        
-        // Optional: feather edges for quality mode
-        if (processingMode === 'quality' && maskValue > 0.05 && maskValue <= 0.1) {
-          alpha = (maskValue - 0.05) / 0.05 * 255;
+      // BodyPix returns 1 for person, 0 for background
+      for (let i = 0; i < mask.length; i++) {
+        const pixelIndex = i * 4;
+        // If mask is 0 (background), make transparent
+        // If mask is 1 (person), keep original but ensure full opacity
+        if (mask[i] === 0) {
+          data[pixelIndex + 3] = 0; // Set alpha to 0 (transparent)
+        } else {
+          data[pixelIndex + 3] = 255; // Ensure full opacity for person
         }
-        
-        data[i * 4 + 3] = alpha; // Set alpha channel
       }
-      
+
       // Put data back
       ctx.putImageData(imageData, 0, 0);
-      
+
       // Show result
       resultCanvas.style.display = 'block';
       resultPlaceholder.style.display = 'none';
       downloadBtn.disabled = false;
       showStatus('✅ Background removed successfully!', 'success');
-      
-      // Cleanup
-      results.close();
-      
+
     } catch (error) {
       console.error("Processing error:", error);
       processingLabel.textContent = 'Processing failed';
-      showStatus('❌ Error processing image. Try a different image.', 'error');
+      showStatus('❌ Error: ' + error.message, 'error');
+      resultPlaceholder.style.display = 'flex';
     }
-  }
-
-  function loadImage(src) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = src;
-    });
   }
 
   window.downloadResult = function() {
@@ -422,13 +405,7 @@
     downloadBtn.disabled = true;
     resultCanvas.style.display = 'none';
     originalImg.src = '';
-    currentImage = null;
   };
-
-  // Handle window resize for canvas
-  window.addEventListener('resize', () => {
-    // Canvas maintains aspect ratio automatically via CSS
-  });
 </script>
 </body>
 </html>
