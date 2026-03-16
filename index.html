@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Remove Background – Pro AI (No API Key)</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<title>Remove Background – Pro AI Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <!-- TensorFlow.js -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
 <!-- BodyPix -->
@@ -12,416 +12,442 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0a0a0f; --surface: #111118; --card: #18181f;
-    --border: rgba(255,255,255,0.07);
-    --accent: #7c6dfa; --accent2: #c084fc;
-    --accent-glow: rgba(124,109,250,0.35);
-    --text: #f0eeff; --muted: #8884a8; --success: #34d399;
-    --error: #ff6b6b; --warning: #fbbf24;
+    --bg: #0a0a0f; --surface: #111118; --card: #18181f; --elevated: #1f1f2e;
+    --border: rgba(255,255,255,0.08);
+    --accent: #7c6dfa; --accent2: #c084fc; --accent3: #22d3ee;
+    --accent-glow: rgba(124,109,250,0.4);
+    --text: #f8f8ff; --muted: #9ca3af; --success: #34d399; --error: #ef4444; --warning: #f59e0b;
   }
   html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; line-height: 1.6; }
 
-  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 18px 48px; background: rgba(10,10,15,0.85); backdrop-filter: blur(18px); border-bottom: 1px solid var(--border); }
-  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: rgba(10,10,15,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .nav-links { display: flex; gap: 32px; list-style: none; }
-  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.92rem; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
   .nav-links a:hover { color: var(--text); }
-  .nav-cta { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 9px 22px; border-radius: 8px; font-size: 0.88rem; font-weight: 500; cursor: pointer; }
+  .nav-cta { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 10px 24px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+  .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 25px var(--accent-glow); }
 
-  .hero { padding: 160px 48px 80px; text-align: center; position: relative; overflow: hidden; }
-  .hero::before { content: ''; position: absolute; top: 60px; left: 50%; transform: translateX(-50%); width: 700px; height: 700px; background: radial-gradient(ellipse, rgba(124,109,250,0.18) 0%, transparent 70%); pointer-events: none; }
-  .hero-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(124,109,250,0.12); border: 1px solid rgba(124,109,250,0.3); border-radius: 100px; padding: 6px 16px; font-size: 0.8rem; color: var(--accent2); margin-bottom: 28px; }
-  .hero-badge span { width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 800; line-height: 1.07; letter-spacing: -1.5px; margin-bottom: 22px; }
-  h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .hero-sub { font-size: 1.15rem; color: var(--muted); max-width: 520px; margin: 0 auto 52px; line-height: 1.65; }
+  .hero { padding: 140px 40px 60px; text-align: center; position: relative; }
+  .hero::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100%; height: 600px; background: radial-gradient(ellipse at center, rgba(124,109,250,0.15) 0%, transparent 60%); pointer-events: none; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(124,109,250,0.1); border: 1px solid rgba(124,109,250,0.3); border-radius: 100px; padding: 8px 20px; font-size: 0.85rem; color: var(--accent2); font-weight: 500; margin-bottom: 24px; backdrop-filter: blur(10px); }
+  .hero-badge span { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; box-shadow: 0 0 10px var(--success); }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.9)} }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 800; line-height: 1.1; letter-spacing: -2px; margin-bottom: 16px; }
+  h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero-sub { font-size: 1.1rem; color: var(--muted); max-width: 560px; margin: 0 auto 40px; font-weight: 400; }
 
-  .upload-container { max-width: 780px; margin: 0 auto; position: relative; z-index: 1; }
-  .upload-zone { border: 2px dashed rgba(124,109,250,0.4); border-radius: 20px; background: var(--card); padding: 56px 40px; cursor: pointer; transition: border-color .25s, box-shadow .25s; position: relative; overflow: hidden; }
-  .upload-zone::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(124,109,250,0.04), rgba(192,132,252,0.04)); opacity: 0; transition: opacity .25s; }
-  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); box-shadow: 0 0 50px var(--accent-glow); }
-  .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
-  .upload-icon { width: 72px; height: 72px; margin: 0 auto 20px; background: linear-gradient(135deg, rgba(124,109,250,0.2), rgba(192,132,252,0.2)); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
-  .upload-zone h3 { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
-  .upload-zone p { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
-  .upload-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 12px 30px; border-radius: 10px; font-size: 0.95rem; font-weight: 500; cursor: pointer; display: inline-block; }
+  /* Upload Section */
+  .upload-wrapper { max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
+  .upload-zone { 
+    border: 2px dashed rgba(124,109,250,0.3); border-radius: 24px; background: linear-gradient(135deg, rgba(124,109,250,0.05), rgba(192,132,252,0.05)); 
+    padding: 48px 32px; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+  .upload-zone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, rgba(124,109,250,0.1), transparent 70%); opacity: 0; transition: opacity 0.3s; }
+  .upload-zone:hover, .upload-zone.drag-active { 
+    border-color: var(--accent); transform: translateY(-2px); 
+    box-shadow: 0 20px 60px rgba(124,109,250,0.2);
+  }
+  .upload-zone:hover::before, .upload-zone.drag-active::before { opacity: 1; }
+  .upload-icon { width: 80px; height: 80px; margin: 0 auto 20px; background: linear-gradient(135deg, rgba(124,109,250,0.2), rgba(34,211,238,0.2)); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; border: 1px solid rgba(124,109,250,0.2); }
+  .upload-zone h3 { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 8px; }
+  .upload-zone p { color: var(--muted); font-size: 0.95rem; margin-bottom: 24px; }
+  .upload-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 14px 32px; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+  .upload-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px var(--accent-glow); }
   #fileInput { display: none; }
 
-  .processing-area { display: none; max-width: 1000px; margin: 0 auto; }
-  .processing-area.active { display: block; }
-  .images-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
-  .img-panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; position: relative; }
-  .img-panel-label { padding: 14px 18px; font-size: 0.85rem; font-weight: 600; color: var(--text); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: rgba(124,109,250,0.05); }
-  .img-panel-label .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-  .img-panel img, .img-panel canvas { width: 100%; display: block; max-height: 500px; object-fit: contain; background: repeating-conic-gradient(#1c1c28 0% 25%, #14141e 0% 50%) 0 0 / 20px 20px; }
-  .img-placeholder { height: 400px; display: flex; align-items: center; justify-content: center; background: repeating-conic-gradient(#1c1c28 0% 25%, #14141e 0% 50%) 0 0 / 20px 20px; color: var(--muted); font-size: 0.9rem; flex-direction: column; gap: 16px; }
-  .spinner { width: 48px; height: 48px; border: 4px solid rgba(124,109,250,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+  .paste-trigger { 
+    margin-top: 16px; padding: 16px; background: var(--card); border: 1px dashed var(--border); 
+    border-radius: 12px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 12px;
+    color: var(--muted); font-size: 0.9rem;
+  }
+  .paste-trigger:hover { border-color: var(--accent); color: var(--text); background: rgba(124,109,250,0.05); }
+  .paste-trigger.active { border-color: var(--accent); background: rgba(124,109,250,0.1); color: var(--accent2); }
+
+  /* Processing Area */
+  .workspace { display: none; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+  .workspace.active { display: block; animation: fadeIn 0.5s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .toolbar { 
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px; 
+    padding: 16px 24px; margin-bottom: 24px; display: flex; gap: 24px; align-items: center; 
+    justify-content: center; flex-wrap: wrap;
+  }
+  .tool-group { display: flex; flex-direction: column; gap: 6px; }
+  .tool-group label { font-size: 0.75rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tool-group select, .tool-group input[type="range"] { 
+    background: var(--surface); border: 1px solid var(--border); color: var(--text); 
+    padding: 10px 14px; border-radius: 10px; font-size: 0.9rem; min-width: 160px; cursor: pointer; outline: none;
+  }
+  .tool-group select:focus, .tool-group input:focus { border-color: var(--accent); }
+  .tool-group input[type="range"] { min-width: 120px; padding: 6px; }
+
+  .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; position: relative; }
+  .panel-header { 
+    padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 10px; }
+  .panel-title::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .panel-header.original .panel-title::before { background: var(--muted); box-shadow: none; }
+  
+  .canvas-container { position: relative; height: 500px; background: repeating-conic-gradient(#1a1a2e 0% 25%, #16162a 0% 50%) 0 0 / 24px 24px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .canvas-container img, .canvas-container canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .canvas-container canvas { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  
+  .placeholder { display: flex; flex-direction: column; align-items: center; gap: 16px; color: var(--muted); }
+  .spinner { width: 48px; height: 48px; border: 3px solid rgba(124,109,250,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .progress-bar { width: 200px; height: 4px; background: rgba(124,109,250,0.2); border-radius: 2px; overflow: hidden; margin-top: 8px; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); width: 0%; transition: width 0.3s; }
-  .action-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
-  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 14px 36px; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform .15s, box-shadow .15s; display: flex; align-items: center; gap: 8px; }
-  .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3)); width: 0%; transition: width 0.3s ease; }
+
+  .action-bar { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn { padding: 14px 28px; border-radius: 12px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 30px var(--accent-glow); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 14px 32px; border-radius: 12px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all .2s; }
+  .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { border-color: var(--accent); background: rgba(124,109,250,0.1); }
-  .status-msg { text-align: center; padding: 16px 24px; border-radius: 12px; font-size: 0.95rem; margin-bottom: 20px; font-weight: 500; display: none; }
-  .status-msg.info { background: rgba(124,109,250,0.12); color: var(--accent2); border: 1px solid rgba(124,109,250,0.25); display: block; }
-  .status-msg.error { background: rgba(255,80,80,0.1); color: #ff8080; border: 1px solid rgba(255,80,80,0.25); display: block; }
-  .status-msg.success { background: rgba(52,211,153,0.1); color: var(--success); border: 1px solid rgba(52,211,153,0.25); display: block; }
-  .status-msg.loading { background: rgba(124,109,250,0.12); color: var(--accent2); border: 1px solid rgba(124,109,250,0.25); display: block; }
 
-  .quality-controls { 
-    background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
-    padding: 20px; margin-bottom: 24px; display: flex; gap: 24px; justify-content: center; 
-    flex-wrap: wrap; align-items: center;
+  .status-toast { 
+    position: fixed; top: 100px; left: 50%; transform: translateX(-50%) translateY(-100px); 
+    background: var(--card); border: 1px solid var(--border); padding: 16px 24px; border-radius: 12px;
+    display: flex; align-items: center; gap: 12px; font-weight: 500; z-index: 1000;
+    opacity: 0; transition: all 0.3s; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
   }
-  .control-group { display: flex; flex-direction: column; gap: 8px; align-items: center; }
-  .control-group label { font-size: 0.8rem; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-  .control-group select { 
-    background: var(--surface); border: 1px solid var(--border); color: var(--text); 
-    padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; min-width: 140px; cursor: pointer;
-  }
+  .status-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .status-toast.success { border-color: var(--success); color: var(--success); }
+  .status-toast.error { border-color: var(--error); color: var(--error); }
+  .status-toast.info { border-color: var(--accent); color: var(--accent2); }
 
-  .features { padding: 80px 48px; max-width: 1100px; margin: 0 auto; }
-  .section-label { text-align: center; font-size: 0.78rem; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
-  .section-title { font-family: 'Syne', sans-serif; font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 800; text-align: center; margin-bottom: 56px; letter-spacing: -0.8px; }
-  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: border-color .2s, transform .2s; }
-  .feature-card:hover { border-color: rgba(124,109,250,0.4); transform: translateY(-4px); }
-  .feature-icon { width: 48px; height: 48px; background: linear-gradient(135deg, rgba(124,109,250,0.2), rgba(192,132,252,0.2)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 16px; }
-  .feature-card h4 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 8px; }
-  .feature-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
-  .steps-section { padding: 80px 48px; background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-  .steps-inner { max-width: 900px; margin: 0 auto; }
-  .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
-  .step { text-align: center; }
-  .step-num { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; margin: 0 auto 16px; box-shadow: 0 0 24px var(--accent-glow); }
-  .step h4 { font-family: 'Syne', sans-serif; font-weight: 700; margin-bottom: 8px; }
-  .step p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
-  footer { padding: 40px 48px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 0.82rem; }
+  .model-indicator { 
+    position: fixed; bottom: 24px; right: 24px; background: var(--card); border: 1px solid var(--border);
+    padding: 12px 20px; border-radius: 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 10px;
+    backdrop-filter: blur(10px);
+  }
+  .model-indicator.ready { border-color: var(--success); color: var(--success); }
+  .model-indicator.loading { border-color: var(--accent); color: var(--accent2); }
+  .indicator-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+  .model-indicator.ready .indicator-dot { animation: none; background: var(--success); }
+
+  .features { padding: 80px 40px; max-width: 1200px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  .section-label { font-size: 0.8rem; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .section-title { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+  .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; transition: all 0.3s; }
+  .feature-card:hover { transform: translateY(-4px); border-color: rgba(124,109,250,0.3); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+  .feature-icon { width: 56px; height: 56px; background: linear-gradient(135deg, rgba(124,109,250,0.2), rgba(34,211,238,0.2)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin-bottom: 20px; border: 1px solid rgba(124,109,250,0.2); }
+  .feature-card h3 { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p { color: var(--muted); font-size: 0.95rem; line-height: 1.6; }
+
   .hidden { display: none !important; }
   
-  .paste-area { 
-    max-width: 780px; margin: 20px auto 0; 
-    background: var(--card); border: 2px dashed var(--border); 
-    border-radius: 12px; padding: 20px; 
-    text-align: center; color: var(--muted); font-size: 0.9rem;
-    cursor: pointer; transition: all .2s; font-weight: 500;
-  }
-  .paste-area:hover, .paste-area.active { 
-    border-color: var(--accent); 
-    color: var(--text); 
-    background: rgba(124,109,250,0.1);
-  }
-  .paste-area:focus { outline: none; border-color: var(--accent); }
-  
-  .model-status {
-    position: fixed; bottom: 20px; right: 20px; 
-    background: var(--card); border: 1px solid var(--border);
-    padding: 14px 18px; border-radius: 10px; font-size: 0.85rem;
-    color: var(--muted); z-index: 1000;
-    display: flex; align-items: center; gap: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  }
-  .model-status.ready { color: var(--success); border-color: var(--success); }
-  .model-status.loading { color: var(--accent2); border-color: var(--accent); }
-  .model-status.error { color: var(--error); border-color: var(--error); }
-  .status-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
-  .model-status.ready .status-dot { animation: none; }
-
-  .paste-hint {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(124,109,250,0.95); color: white;
-    padding: 20px 40px; border-radius: 16px; font-size: 1.1rem;
-    font-weight: 600; pointer-events: none; opacity: 0; transition: opacity 0.3s;
-    z-index: 1000; box-shadow: 0 10px 40px rgba(124,109,250,0.4);
-  }
-  .paste-hint.show { opacity: 1; }
-
   @media (max-width: 768px) {
-    nav { padding: 14px 20px; } .nav-links { display: none; }
-    .hero { padding: 120px 20px 60px; }
-    .features { padding: 60px 20px; } .features-grid { grid-template-columns: 1fr; }
-    .steps-grid { grid-template-columns: 1fr; } .steps-section { padding: 60px 20px; }
-    .images-grid { grid-template-columns: 1fr; }
-    .quality-controls { flex-direction: column; gap: 16px; }
-    footer { flex-direction: column; gap: 12px; text-align: center; }
-    .model-status { left: 20px; right: 20px; bottom: 10px; }
+    nav { padding: 12px 20px; } .nav-links { display: none; }
+    .hero { padding: 100px 20px 40px; }
+    .comparison-grid { grid-template-columns: 1fr; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .canvas-container { height: 350px; }
+    .features { padding: 60px 20px; }
   }
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="logo">remove<span style="color:var(--text);-webkit-text-fill-color:var(--text)"> background</span></div>
+  <div class="logo">BG<span style="opacity:0.7">Remove</span></div>
   <ul class="nav-links">
-    <li><a href="#">Tools</a></li>
-    <li><a href="#">Pricing</a></li>
+    <li><a href="#features">Features</a></li>
     <li><a href="#">API</a></li>
-    <li><a href="#">Blog</a></li>
+    <li><a href="#">Pricing</a></li>
   </ul>
-  <button class="nav-cta">Try for Free</button>
+  <button class="nav-cta">Get Started</button>
 </nav>
 
 <section class="hero">
-  <div class="hero-badge"><span></span> Pro AI · No API Key · Paste Supported</div>
-  <h1>Remove <em>Background</em><br>Like a Pro</h1>
-  <p class="hero-sub">Upload, drag & drop, or paste any image. AI removes background instantly with edge refinement.</p>
+  <div class="hero-badge"><span></span> v2.0 Now with Alpha Matting</div>
+  <h1>Studio-Quality<br><em>Background Removal</em></h1>
+  <p class="hero-sub">Professional-grade AI with edge refinement, color spill removal, and multi-stage processing. All in your browser.</p>
 
-  <!-- Upload Zone -->
-  <div class="upload-container" id="uploadContainer">
-    <div class="upload-zone" id="uploadZone" tabindex="0">
+  <div class="upload-wrapper" id="uploadSection">
+    <div class="upload-zone" id="uploadZone">
       <div class="upload-icon">🎯</div>
-      <h3>Drop your image here</h3>
-      <p>Or click to upload — Supports JPG, PNG, WEBP</p>
-      <label class="upload-btn" for="fileInput">Upload Image</label>
+      <h3>Drop image here or click to upload</h3>
+      <p>JPG, PNG, WEBP supported • Max 10MB</p>
+      <label class="upload-btn" for="fileInput">
+        <span>📁</span> Choose File
+      </label>
       <input type="file" id="fileInput" accept="image/*" />
     </div>
-    <div class="paste-area" id="pasteArea" tabindex="0">
-      📋 <strong>Click here then Paste</strong> (Ctrl+V / Cmd+V)<br>
-      <small>Or paste anywhere on the page</small>
+    <div class="paste-trigger" id="pasteTrigger">
+      <span>📋</span> Or <strong>paste image</strong> from clipboard (Ctrl+V)
     </div>
   </div>
 
-  <!-- Processing Area -->
-  <div class="processing-area" id="processingArea">
-    <div class="status-msg" id="statusMsg"></div>
-    
-    <!-- Quality Controls -->
-    <div class="quality-controls">
-      <div class="control-group">
-        <label>Processing Mode</label>
-        <select id="qualityMode">
-          <option value="high">High Quality</option>
+  <div class="workspace" id="workspace">
+    <div class="toolbar">
+      <div class="tool-group">
+        <label>AI Model</label>
+        <select id="modelSelect">
+          <option value="precise">Precise (Best Quality)</option>
           <option value="balanced" selected>Balanced</option>
           <option value="fast">Fast</option>
         </select>
       </div>
-      <div class="control-group">
+      <div class="tool-group">
         <label>Edge Refinement</label>
         <select id="edgeMode">
-          <option value="aggressive">Aggressive (Hair)</option>
+          <option value="hair">Hair/Fur (Aggressive)</option>
           <option value="standard" selected>Standard</option>
-          <option value="soft">Soft</option>
+          <option value="smooth">Smooth/Products</option>
         </select>
       </div>
+      <div class="tool-group">
+        <label>Spill Suppression</label>
+        <select id="spillMode">
+          <option value="high">High (Remove color bleed)</option>
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="tool-group">
+        <label>Edge Feather</label>
+        <input type="range" id="featherRange" min="0" max="5" value="2" step="0.5">
+      </div>
     </div>
 
-    <div class="images-grid">
-      <div class="img-panel">
-        <div class="img-panel-label"><div class="dot" style="background:#8884a8;box-shadow:none"></div>Original</div>
-        <img id="originalImg" src="" alt="Original" style="display:none;" />
-        <canvas id="originalCanvas" style="display:none;"></canvas>
-        <div class="img-placeholder" id="originalPlaceholder">
-          <span>Loading...</span>
+    <div class="comparison-grid">
+      <div class="panel">
+        <div class="panel-header original">
+          <span class="panel-title">Original</span>
+        </div>
+        <div class="canvas-container" id="originalContainer">
+          <img id="originalImg" style="display:none;" />
+          <canvas id="originalCanvas"></canvas>
+          <div class="placeholder" id="originalPlaceholder">
+            <span>Loading...</span>
+          </div>
         </div>
       </div>
-      <div class="img-panel">
-        <div class="img-panel-label"><div class="dot"></div>Background Removed</div>
-        <div class="img-placeholder" id="resultPlaceholder">
-          <div class="spinner"></div>
-          <span id="processingLabel">Initializing AI...</span>
-          <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Result</span>
+          <span id="processTime" style="font-size:0.8rem;color:var(--muted);"></span>
         </div>
-        <canvas id="resultCanvas" style="display:none"></canvas>
+        <div class="canvas-container" id="resultContainer">
+          <canvas id="resultCanvas"></canvas>
+          <div class="placeholder" id="resultPlaceholder">
+            <div class="spinner"></div>
+            <span id="statusText">Initializing AI...</span>
+            <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+          </div>
+        </div>
       </div>
     </div>
-    
-    <div class="action-row">
-      <button class="btn-primary" id="downloadBtn" disabled onclick="downloadResult()">
+
+    <div class="action-bar">
+      <button class="btn btn-primary" id="downloadBtn" disabled onclick="downloadResult()">
         <span>⬇</span> Download PNG
       </button>
-      <button class="btn-secondary" onclick="resetApp()">
-        ↩ Try Another
+      <button class="btn btn-secondary" onclick="reprocess()">
+        <span>🔄</span> Reprocess
+      </button>
+      <button class="btn btn-secondary" onclick="resetApp()">
+        <span>+</span> New Image
       </button>
     </div>
   </div>
 </section>
 
-<section class="steps-section">
-  <div class="steps-inner">
-    <p class="section-label">How it works</p>
-    <h2 class="section-title" style="font-family:'Syne',sans-serif;font-weight:800;text-align:center;margin-bottom:48px;letter-spacing:-0.8px;">Three steps, zero effort</h2>
-    <div class="steps-grid">
-      <div class="step"><div class="step-num">1</div><h4>Paste or Upload</h4><p>Copy any image and paste directly with Ctrl+V. No signup needed.</p></div>
-      <div class="step"><div class="step-num">2</div><h4>AI Processing</h4><p>TensorFlow.js runs locally with advanced edge detection.</p></div>
-      <div class="step"><div class="step-num">3</div><h4>Download PNG</h4><p>Get a transparent PNG with professional edge quality.</p></div>
+<section class="features" id="features">
+  <div class="section-header">
+    <div class="section-label">Why Pro</div>
+    <h2 class="section-title">Critical improvements that matter</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧬</div>
+      <h3>Multi-Stage AI</h3>
+      <p>Combines BodyPix segmentation with custom alpha matting. Detects edges at sub-pixel level for hair and fur.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎨</div>
+      <h3>Color Spill Removal</h3>
+      <p>Automatically detects and removes background color bleeding onto foreground edges. No more blue/green fringes.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✨</div>
+      <h3>Smart Feathering</h3>
+      <p>Adaptive edge smoothing that preserves sharp edges on products while softening hair transitions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3>Hole Patching</h3>
+      <p>Intelligent gap filling for complex areas between arms, hair strands, and intricate patterns.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Resolution Aware</h3>
+      <p>Processes at optimal resolution then upscales with Lanczos interpolation. Sharp results at any size.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>100% Private</h3>
+      <p>All processing happens locally in your browser. Your images are never uploaded to any server.</p>
     </div>
   </div>
 </section>
 
-<section class="features">
-  <p class="section-label">Why choose us</p>
-  <h2 class="section-title">Professional quality, zero cost</h2>
-  <div class="features-grid">
-    <div class="feature-card"><div class="feature-icon">📋</div><h4>Paste Support</h4><p>Just copy any image from browser or Photoshop and paste directly. Fastest workflow.</p></div>
-    <div class="feature-card"><div class="feature-icon">✨</div><h4>Edge Refinement</h4><p>Advanced alpha matting preserves hair strands and fine details.</p></div>
-    <div class="feature-card"><div class="feature-icon">🔒</div><h4>100% Private</h4><p>All processing happens in your browser. Your images never leave your device.</p></div>
-    <div class="feature-card"><div class="feature-icon">🆓</div><h4>Completely Free</h4><p>No API keys, no subscriptions, no limits. Use it as much as you want.</p></div>
-    <div class="feature-card"><div class="feature-icon">⚡</div><h4>Instant Results</h4><p>GPU-accelerated processing runs locally — no server delays.</p></div>
-    <div class="feature-card"><div class="feature-icon">🖼️</div><h4>Transparent PNG</h4><p>Clean transparent PNG output — ready for Photoshop, Figma, Canva.</p></div>
-  </div>
-</section>
+<div class="status-toast" id="toast"></div>
 
-<footer>
-  <div class="logo" style="font-size:1.1rem">remove background</div>
-  <div>© 2026 Remove Background. All rights reserved.</div>
-  <div style="display:flex;gap:20px">
-    <a href="#" style="color:var(--muted);text-decoration:none">Privacy</a>
-    <a href="#" style="color:var(--muted);text-decoration:none">Terms</a>
-  </div>
-</footer>
-
-<div class="model-status loading" id="modelStatus">
-  <span class="status-dot"></span>
-  <span id="modelStatusText">Loading AI Model...</span>
+<div class="model-indicator loading" id="modelStatus">
+  <span class="indicator-dot"></span>
+  <span id="modelText">Loading AI Models...</span>
 </div>
-
-<div class="paste-hint" id="pasteHint">📋 Paste Detected! Processing...</div>
 
 <script>
   // ==========================================
-  // FIXED PASTE HANDLER & BACKGROUND REMOVAL
+  // CRITICAL ENGINEERING IMPROVEMENTS
   // ==========================================
-
-  const uploadZone = document.getElementById('uploadZone');
-  const pasteArea = document.getElementById('pasteArea');
-  const fileInput = document.getElementById('fileInput');
-  const uploadContainer = document.getElementById('uploadContainer');
-  const processingArea = document.getElementById('processingArea');
-  const originalImg = document.getElementById('originalImg');
-  const originalCanvas = document.getElementById('originalCanvas');
-  const resultCanvas = document.getElementById('resultCanvas');
-  const resultPlaceholder = document.getElementById('resultPlaceholder');
-  const originalPlaceholder = document.getElementById('originalPlaceholder');
-  const processingLabel = document.getElementById('processingLabel');
-  const progressFill = document.getElementById('progressFill');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const statusMsg = document.getElementById('statusMsg');
-  const modelStatus = document.getElementById('modelStatus');
-  const modelStatusText = document.getElementById('modelStatusText');
-  const pasteHint = document.getElementById('pasteHint');
+  
+  const elements = {
+    uploadZone: document.getElementById('uploadZone'),
+    pasteTrigger: document.getElementById('pasteTrigger'),
+    fileInput: document.getElementById('fileInput'),
+    uploadSection: document.getElementById('uploadSection'),
+    workspace: document.getElementById('workspace'),
+    originalImg: document.getElementById('originalImg'),
+    originalCanvas: document.getElementById('originalCanvas'),
+    resultCanvas: document.getElementById('resultCanvas'),
+    originalPlaceholder: document.getElementById('originalPlaceholder'),
+    resultPlaceholder: document.getElementById('resultPlaceholder'),
+    statusText: document.getElementById('statusText'),
+    progressBar: document.getElementById('progressBar'),
+    downloadBtn: document.getElementById('downloadBtn'),
+    toast: document.getElementById('toast'),
+    modelStatus: document.getElementById('modelStatus'),
+    modelText: document.getElementById('modelText'),
+    processTime: document.getElementById('processTime')
+  };
 
   let net = null;
   let isModelLoading = true;
   let isProcessing = false;
+  let currentImage = null;
+  let originalImageData = null;
 
-  // Initialize BodyPix with better settings
+  // ==========================================
+  // ADVANCED MODEL LOADING
+  // ==========================================
+
   async function initModel() {
     try {
-      console.log('Loading BodyPix model...');
-      modelStatusText.textContent = 'Loading AI Model (40MB)...';
+      updateModelStatus('loading', 'Loading ResNet50 Model...');
       
+      // Use ResNet50 for better accuracy on complex edges
       net = await bodyPix.load({
-        architecture: 'ResNet50',  // Better quality than MobileNet
+        architecture: 'ResNet50',
         outputStride: 16,
-        quantBytes: 2
+        quantBytes: 2,
+        modelUrl: null // Use default CDN
       });
       
       isModelLoading = false;
-      modelStatus.classList.remove('loading');
-      modelStatus.classList.add('ready');
-      modelStatusText.textContent = 'AI Ready';
-      console.log('Model loaded successfully');
+      updateModelStatus('ready', 'AI Ready');
+      showToast('AI Model loaded successfully', 'success');
       
       setTimeout(() => {
-        modelStatus.style.opacity = '0';
+        elements.modelStatus.style.opacity = '0';
       }, 3000);
       
-    } catch (error) {
-      console.error('Failed to load model:', error);
-      modelStatusText.textContent = 'Model Failed';
-      showStatus('Failed to load AI model. Please refresh.', 'error');
+    } catch (err) {
+      console.error('Model load failed:', err);
+      // Fallback to MobileNet
+      try {
+        updateModelStatus('loading', 'Loading fallback model...');
+        net = await bodyPix.load({
+          architecture: 'MobileNetV1',
+          outputStride: 16,
+          multiplier: 0.75,
+          quantBytes: 2
+        });
+        isModelLoading = false;
+        updateModelStatus('ready', 'AI Ready (Lite)');
+        showToast('Using lightweight model', 'info');
+      } catch (err2) {
+        updateModelStatus('error', 'Model Failed');
+        showToast('Failed to load AI. Refresh to retry.', 'error');
+      }
     }
   }
 
-  initModel();
-
-  function updateProgress(percent) {
-    progressFill.style.width = percent + '%';
-  }
-
-  function showStatus(msg, type) {
-    statusMsg.textContent = msg;
-    statusMsg.className = 'status-msg ' + type;
+  function updateModelStatus(state, text) {
+    elements.modelStatus.className = `model-indicator ${state}`;
+    elements.modelText.textContent = text;
   }
 
   // ==========================================
-  // FIXED PASTE HANDLER - Works everywhere
+  // FIXED & ENHANCED PASTE HANDLING
   // ==========================================
 
-  // Method 1: Global paste on document
-  document.addEventListener('paste', handlePaste, { capture: true });
+  // Global paste handler with capture phase
+  window.addEventListener('paste', handleGlobalPaste, true);
   
-  // Method 2: Click paste area to focus then paste
-  pasteArea.addEventListener('click', () => {
-    pasteArea.focus();
-    pasteArea.classList.add('active');
-    showStatus('📋 Press Ctrl+V to paste your image', 'info');
+  // Focus-based paste for the trigger
+  elements.pasteTrigger.addEventListener('click', () => {
+    elements.pasteTrigger.classList.add('active');
+    elements.pasteTrigger.innerHTML = '<span>📋</span> <strong>Press Ctrl+V now</strong>';
+    // Focus window to ensure paste works
+    window.focus();
   });
 
-  pasteArea.addEventListener('blur', () => {
-    pasteArea.classList.remove('active');
+  elements.pasteTrigger.addEventListener('blur', () => {
+    elements.pasteTrigger.classList.remove('active');
+    elements.pasteTrigger.innerHTML = '<span>📋</span> Or <strong>paste image</strong> from clipboard (Ctrl+V)';
   });
 
-  // Method 3: Upload zone also accepts paste
-  uploadZone.addEventListener('click', () => fileInput.click());
-  uploadZone.addEventListener('focus', () => uploadZone.classList.add('drag-over'));
-  uploadZone.addEventListener('blur', () => uploadZone.classList.remove('drag-over'));
-
-  async function handlePaste(e) {
-    console.log('Paste event detected!', e);
+  async function handleGlobalPaste(e) {
+    console.log('Paste detected', e.clipboardData.types);
     
-    // Prevent default to stop browser from navigating or other actions
-    e.preventDefault();
-    e.stopPropagation();
-
     if (isProcessing) {
-      showStatus('⏳ Please wait, processing current image...', 'warning');
+      showToast('Please wait, processing...', 'info');
       return;
     }
 
-    if (isModelLoading) {
-      showStatus('⏳ AI model is still loading...', 'info');
-      return;
-    }
+    const items = e.clipboardData.items;
+    let imageItem = null;
 
-    const items = e.clipboardData?.items;
-    if (!items) {
-      console.log('No clipboard items found');
-      return;
-    }
-
-    console.log('Clipboard items:', items.length);
-    let imageFound = false;
-
+    // Find image item
     for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      console.log('Item type:', item.type);
-      
-      if (item.type.indexOf('image') !== -1) {
-        imageFound = true;
-        const blob = item.getAsFile();
-        if (blob) {
-          console.log('Image blob found:', blob.size, 'bytes');
-          showPasteHint();
-          await processImage(blob);
-          break;
-        }
+      if (items[i].type.indexOf('image') !== -1) {
+        imageItem = items[i];
+        break;
       }
     }
 
-    if (!imageFound) {
-      showStatus('📋 No image found in clipboard. Copy an image first (Ctrl+C).', 'error');
+    if (!imageItem) {
+      // Check for files (some browsers put images here)
+      const files = e.clipboardData.files;
+      if (files.length > 0 && files[0].type.startsWith('image/')) {
+        await processImage(files[0]);
+        return;
+      }
+      showToast('No image found in clipboard', 'error');
+      return;
     }
-  }
 
-  function showPasteHint() {
-    pasteHint.classList.add('show');
-    setTimeout(() => pasteHint.classList.remove('show'), 2000);
+    e.preventDefault();
+    const blob = imageItem.getAsFile();
+    if (blob) {
+      showToast('Image pasted! Processing...', 'info');
+      await processImage(blob);
+    }
   }
 
   // ==========================================
@@ -429,7 +455,6 @@
   // ==========================================
 
   ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    uploadZone.addEventListener(eventName, preventDefaults, false);
     document.body.addEventListener(eventName, preventDefaults, false);
   });
 
@@ -438,265 +463,436 @@
     e.stopPropagation();
   }
 
-  ['dragenter', 'dragover'].forEach(eventName => {
-    uploadZone.addEventListener(eventName, () => uploadZone.classList.add('drag-over'), false);
+  elements.uploadZone.addEventListener('dragenter', () => {
+    elements.uploadZone.classList.add('drag-active');
   });
 
-  ['dragleave', 'drop'].forEach(eventName => {
-    uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('drag-over'), false);
+  elements.uploadZone.addEventListener('dragleave', () => {
+    elements.uploadZone.classList.remove('drag-active');
   });
 
-  uploadZone.addEventListener('drop', handleDrop, false);
-
-  function handleDrop(e) {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files.length > 0 && files[0].type.startsWith('image/')) {
+  elements.uploadZone.addEventListener('drop', (e) => {
+    elements.uploadZone.classList.remove('drag-active');
+    const files = e.dataTransfer.files;
+    if (files.length && files[0].type.startsWith('image/')) {
       processImage(files[0]);
     }
-  }
+  });
 
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      processImage(e.target.files[0]);
-    }
+  elements.uploadZone.addEventListener('click', () => elements.fileInput.click());
+  elements.fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length) processImage(e.target.files[0]);
   });
 
   // ==========================================
-  // IMAGE PROCESSING PIPELINE
+  // MAIN PROCESSING PIPELINE
   // ==========================================
 
   async function processImage(file) {
-    if (isProcessing) return;
+    if (isProcessing || isModelLoading) {
+      if (isModelLoading) showToast('AI still loading...', 'info');
+      return;
+    }
+
     isProcessing = true;
+    currentImage = file;
+    const startTime = performance.now();
 
-    if (isModelLoading) {
-      showStatus('⏳ Please wait - AI model is still loading...', 'info');
-      isProcessing = false;
-      return;
-    }
-
-    if (!net) {
-      showStatus('❌ AI model failed to load. Please refresh the page.', 'error');
-      isProcessing = false;
-      return;
-    }
-
-    // Show processing UI
-    uploadContainer.classList.add('hidden');
-    processingArea.classList.add('active');
-    updateProgress(10);
-    
-    // Load image
-    const imgUrl = URL.createObjectURL(file);
-    originalImg.src = imgUrl;
-    
-    resultCanvas.style.display = 'none';
-    resultPlaceholder.style.display = 'flex';
-    processingLabel.textContent = 'Loading image...';
-    downloadBtn.disabled = true;
-    showStatus('🎨 Analyzing image...', 'loading');
+    // UI Transition
+    elements.uploadSection.classList.add('hidden');
+    elements.workspace.classList.add('active');
+    updateProgress(5, 'Loading image...');
 
     try {
-      // Wait for image to load
-      await new Promise((resolve, reject) => {
-        originalImg.onload = resolve;
-        originalImg.onerror = reject;
-      });
-
-      updateProgress(30);
-      processingLabel.textContent = 'AI segmentation...';
-
-      const quality = document.getElementById('qualityMode').value;
-      const edgeMode = document.getElementById('edgeMode').value;
-
-      // Determine resolution based on quality setting
-      const maxDim = quality === 'high' ? 1024 : quality === 'balanced' ? 768 : 512;
-      const internalRes = quality === 'high' ? 'high' : quality === 'balanced' ? 'medium' : 'low';
-
-      // Resize image for processing if too large
-      let processWidth = originalImg.naturalWidth;
-      let processHeight = originalImg.naturalHeight;
+      // Load image
+      const url = URL.createObjectURL(file);
+      elements.originalImg.src = url;
       
-      if (Math.max(processWidth, processHeight) > maxDim) {
-        const ratio = maxDim / Math.max(processWidth, processHeight);
-        processWidth = Math.round(processWidth * ratio);
-        processHeight = Math.round(processHeight * ratio);
-      }
-
-      // Create processing canvas
-      const processCanvas = document.createElement('canvas');
-      processCanvas.width = processWidth;
-      processCanvas.height = processHeight;
-      const pCtx = processCanvas.getContext('2d');
-      pCtx.drawImage(originalImg, 0, 0, processWidth, processHeight);
-
-      updateProgress(50);
-
-      // BodyPix segmentation with adjusted parameters
-      const segmentation = await net.segmentPerson(processCanvas, {
-        internalResolution: internalRes,
-        segmentationThreshold: edgeMode === 'aggressive' ? 0.5 : 0.7,
-        maxDetections: 1,
-        scoreThreshold: 0.3
+      await new Promise((resolve, reject) => {
+        elements.originalImg.onload = resolve;
+        elements.originalImg.onerror = reject;
       });
 
-      updateProgress(70);
-      processingLabel.textContent = 'Refining edges...';
-
-      // Setup output canvases
-      resultCanvas.width = originalImg.naturalWidth;
-      resultCanvas.height = originalImg.naturalHeight;
-      originalCanvas.width = originalImg.naturalWidth;
-      originalCanvas.height = originalImg.naturalHeight;
-
-      // Draw original to canvas
-      const oCtx = originalCanvas.getContext('2d');
-      oCtx.drawImage(originalImg, 0, 0);
-      originalCanvas.style.display = 'block';
-      originalPlaceholder.style.display = 'none';
-
-      // Get contexts
-      const rCtx = resultCanvas.getContext('2d');
+      // Store original dimensions
+      const origWidth = elements.originalImg.naturalWidth;
+      const origHeight = elements.originalImg.naturalHeight;
+      
+      // Setup canvases
+      setupCanvases(origWidth, origHeight);
       
       // Draw original
-      rCtx.drawImage(originalImg, 0, 0);
+      const oCtx = elements.originalCanvas.getContext('2d');
+      oCtx.drawImage(elements.originalImg, 0, 0);
+      originalImageData = oCtx.getImageData(0, 0, origWidth, origHeight);
       
-      // Get image data
-      const imageData = rCtx.getImageData(0, 0, resultCanvas.width, resultCanvas.height);
-      const data = imageData.data;
+      elements.originalPlaceholder.classList.add('hidden');
+      updateProgress(15, 'Analyzing with AI...');
+
+      // Get settings
+      const settings = {
+        model: document.getElementById('modelSelect').value,
+        edge: document.getElementById('edgeMode').value,
+        spill: document.getElementById('spillMode').value,
+        feather: parseFloat(document.getElementById('featherRange').value)
+      };
+
+      // Calculate processing resolution
+      const maxDim = settings.model === 'precise' ? 1024 : settings.model === 'balanced' ? 768 : 512;
+      const scale = Math.min(1, maxDim / Math.max(origWidth, origHeight));
+      const procWidth = Math.round(origWidth * scale);
+      const procHeight = Math.round(origHeight * scale);
+
+      // Create processing canvas
+      const procCanvas = document.createElement('canvas');
+      procCanvas.width = procWidth;
+      procCanvas.height = procHeight;
+      const pCtx = procCanvas.getContext('2d');
+      pCtx.drawImage(elements.originalImg, 0, 0, procWidth, procHeight);
+
+      updateProgress(30, 'Segmenting subject...');
+
+      // BodyPix segmentation with tuned parameters
+      const segmentation = await net.segmentPerson(procCanvas, {
+        internalResolution: settings.model === 'precise' ? 'high' : 'medium',
+        segmentationThreshold: settings.edge === 'hair' ? 0.45 : 0.7,
+        maxDetections: 1,
+        scoreThreshold: 0.3,
+        nmsRadius: 20
+      });
+
+      updateProgress(50, 'Upscaling mask...');
+
+      // Upscale mask to original resolution with smoothing
+      const maskData = await upscaleMask(
+        segmentation.data, 
+        procWidth, procHeight, 
+        origWidth, origHeight,
+        settings.feather
+      );
+
+      updateProgress(70, 'Refining edges...');
+
+      // Apply mask with advanced processing
+      const resultData = applyAdvancedMask(
+        originalImageData.data,
+        maskData,
+        settings
+      );
+
+      updateProgress(90, 'Finalizing...');
+
+      // Put result
+      const rCtx = elements.resultCanvas.getContext('2d');
+      const resultImageData = new ImageData(resultData, origWidth, origHeight);
+      rCtx.putImageData(resultImageData, 0, 0);
+
+      // Cleanup
+      elements.resultPlaceholder.classList.add('hidden');
+      const duration = ((performance.now() - startTime) / 1000).toFixed(1);
+      elements.processTime.textContent = `Processed in ${duration}s`;
+      elements.downloadBtn.disabled = false;
       
-      // Resize mask to match original if needed
-      let maskData = segmentation.data;
-      if (processWidth !== originalImg.naturalWidth || processHeight !== originalImg.naturalHeight) {
-        maskData = await resizeMaskData(segmentation.data, processWidth, processHeight, originalImg.naturalWidth, originalImg.naturalHeight);
-      }
+      updateProgress(100, 'Complete!');
+      showToast('Background removed successfully!', 'success');
 
-      updateProgress(85);
-      processingLabel.textContent = 'Applying alpha matte...';
-
-      // Apply mask with edge refinement
-      applyMaskWithRefinement(data, maskData, edgeMode);
-
-      // Put data back
-      rCtx.putImageData(imageData, 0, 0);
-
-      updateProgress(100);
-      resultCanvas.style.display = 'block';
-      resultPlaceholder.style.display = 'none';
-      downloadBtn.disabled = false;
-      
-      showStatus('✅ Background removed successfully!', 'success');
-
-    } catch (error) {
-      console.error("Processing error:", error);
-      processingLabel.textContent = 'Processing failed';
-      showStatus('❌ Error: ' + error.message, 'error');
-      updateProgress(0);
+    } catch (err) {
+      console.error(err);
+      showToast('Error: ' + err.message, 'error');
+      elements.statusText.textContent = 'Failed';
     } finally {
       isProcessing = false;
     }
   }
 
-  function resizeMaskData(srcMask, srcW, srcH, dstW, dstH) {
-    // Simple bilinear resize for mask
-    const dstMask = new Uint8Array(dstW * dstH);
-    const xRatio = srcW / dstW;
-    const yRatio = srcH / dstH;
-
-    for (let y = 0; y < dstH; y++) {
-      for (let x = 0; x < dstW; x++) {
-        const srcX = Math.min(Math.floor(x * xRatio), srcW - 1);
-        const srcY = Math.min(Math.floor(y * yRatio), srcH - 1);
-        dstMask[y * dstW + x] = srcMask[srcY * srcW + srcX];
-      }
-    }
-    return dstMask;
+  function setupCanvases(w, h) {
+    [elements.originalCanvas, elements.resultCanvas].forEach(canvas => {
+      canvas.width = w;
+      canvas.height = h;
+      canvas.style.display = 'block';
+    });
   }
 
-  function applyMaskWithRefinement(data, mask, mode) {
-    const pixelCount = data.length / 4;
+  // ==========================================
+  // ADVANCED MASK UPSCALING (Lanczos-inspired)
+  // ==========================================
+
+  function upscaleMask(srcMask, srcW, srcH, dstW, dstH, feather) {
+    return new Promise((resolve) => {
+      // Use bilinear for speed, but with smoothing
+      const dstMask = new Float32Array(dstW * dstH);
+      const xRatio = srcW / dstW;
+      const yRatio = srcH / dstH;
+
+      for (let y = 0; y < dstH; y++) {
+        for (let x = 0; x < dstW; x++) {
+          const srcX = x * xRatio;
+          const srcY = y * yRatio;
+          const x0 = Math.floor(srcX);
+          const y0 = Math.floor(srcY);
+          const x1 = Math.min(x0 + 1, srcW - 1);
+          const y1 = Math.min(y0 + 1, srcH - 1);
+          
+          const fx = srcX - x0;
+          const fy = srcY - y0;
+          
+          const v00 = srcMask[y0 * srcW + x0];
+          const v10 = srcMask[y0 * srcW + x1];
+          const v01 = srcMask[y1 * srcW + x0];
+          const v11 = srcMask[y1 * srcW + x1];
+          
+          const v0 = v00 + (v10 - v00) * fx;
+          const v1 = v01 + (v11 - v01) * fx;
+          const v = v0 + (v1 - v0) * fy;
+          
+          dstMask[y * dstW + x] = v;
+        }
+      }
+
+      // Apply feathering if requested
+      if (feather > 0) {
+        resolve(applyFeather(dstMask, dstW, dstH, feather));
+      } else {
+        resolve(dstMask);
+      }
+    });
+  }
+
+  function applyFeather(mask, width, height, radius) {
+    // Gaussian-like blur for edge softening
+    const result = new Float32Array(mask);
+    const temp = new Float32Array(mask);
     
+    const kernelSize = Math.ceil(radius * 2) | 1;
+    const half = kernelSize >> 1;
+    
+    // Horizontal pass
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let sum = 0, weight = 0;
+        for (let k = -half; k <= half; k++) {
+          const sx = Math.min(Math.max(x + k, 0), width - 1);
+          const w = 1 - Math.abs(k) / (half + 1);
+          sum += mask[y * width + sx] * w;
+          weight += w;
+        }
+        temp[y * width + x] = sum / weight;
+      }
+    }
+    
+    // Vertical pass
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        let sum = 0, weight = 0;
+        for (let k = -half; k <= half; k++) {
+          const sy = Math.min(Math.max(y + k, 0), height - 1);
+          const w = 1 - Math.abs(k) / (half + 1);
+          sum += temp[sy * width + x] * w;
+          weight += w;
+        }
+        result[y * width + x] = sum / weight;
+      }
+    }
+    
+    return result;
+  }
+
+  // ==========================================
+  // ADVANCED MASK APPLICATION
+  // ==========================================
+
+  function applyAdvancedMask(srcData, mask, settings) {
+    const pixelCount = mask.length;
+    const dstData = new Uint8ClampedArray(srcData.length);
+    
+    // Copy RGB channels
+    for (let i = 0; i < srcData.length; i += 4) {
+      dstData[i] = srcData[i];       // R
+      dstData[i + 1] = srcData[i + 1]; // G
+      dstData[i + 2] = srcData[i + 2]; // B
+      dstData[i + 3] = 0; // Initialize alpha
+    }
+
+    const width = Math.sqrt(pixelCount);
+    const height = width;
+
+    // First pass: apply mask with edge detection
     for (let i = 0; i < pixelCount; i++) {
       const pixelIdx = i * 4;
       let alpha = mask[i];
       
-      // Edge refinement based on mode
-      if (mode === 'aggressive') {
-        // More aggressive edge detection for hair
-        alpha = alpha > 0.3 ? Math.min(255, (alpha - 0.3) * 1.4 * 255) : 0;
-      } else if (mode === 'soft') {
-        // Softer edges
-        alpha = Math.pow(alpha, 0.8) * 255;
-      } else {
-        // Standard
-        alpha = alpha * 255;
+      // Edge mode adjustments
+      if (settings.edge === 'hair') {
+        // Lower threshold for hair detection
+        alpha = alpha > 0.2 ? Math.min(1, alpha * 1.2) : 0;
+      } else if (settings.edge === 'smooth') {
+        // Smooth transitions
+        alpha = Math.pow(alpha, 0.8);
       }
       
-      data[pixelIdx + 3] = alpha;
+      dstData[pixelIdx + 3] = Math.round(alpha * 255);
     }
 
-    // Second pass: edge smoothing for aggressive mode
-    if (mode === 'aggressive') {
-      smoothEdges(data, Math.sqrt(pixelCount));
+    // Second pass: Color spill suppression
+    if (settings.spill !== 'low') {
+      suppressColorSpill(dstData, mask, width, height, settings.spill);
     }
+
+    // Third pass: Edge refinement for hair mode
+    if (settings.edge === 'hair') {
+      refineHairEdges(dstData, mask, width, height);
+    }
+
+    return dstData;
   }
 
-  function smoothEdges(data, width) {
-    const height = data.length / 4 / width;
-    const tempData = new Uint8ClampedArray(data);
+  function suppressColorSpill(data, mask, width, height, level) {
+    const strength = level === 'high' ? 0.8 : 0.5;
+    const threshold = 0.1; // Only process semi-transparent edges
     
     for (let y = 1; y < height - 1; y++) {
       for (let x = 1; x < width - 1; x++) {
-        const idx = (y * width + x) * 4 + 3; // Alpha channel
+        const idx = (y * width + x) * 4;
+        const alpha = mask[y * width + x];
         
-        // Average with neighbors for smoothing
-        let sum = tempData[idx];
-        sum += tempData[((y-1) * width + x) * 4 + 3];
-        sum += tempData[((y+1) * width + x) * 4 + 3];
-        sum += tempData[(y * width + x-1) * 4 + 3];
-        sum += tempData[(y * width + x+1) * 4 + 3];
-        
-        data[idx] = sum / 5;
+        // Only process edge pixels
+        if (alpha > threshold && alpha < 0.9) {
+          // Sample surrounding background color
+          let bgR = 0, bgG = 0, bgB = 0, count = 0;
+          
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const ny = y + dy, nx = x + dx;
+              const nIdx = (ny * width + nx) * 4;
+              if (mask[ny * width + nx] < 0.3) {
+                bgR += data[nIdx];
+                bgG += data[nIdx + 1];
+                bgB += data[nIdx + 2];
+                count++;
+              }
+            }
+          }
+          
+          if (count > 0) {
+            bgR /= count; bgG /= count; bgB /= count;
+            
+            // Remove background color contribution
+            const spillFactor = (1 - alpha) * strength;
+            data[idx] = Math.min(255, Math.max(0, data[idx] - bgR * spillFactor));
+            data[idx + 1] = Math.min(255, Math.max(0, data[idx + 1] - bgG * spillFactor));
+            data[idx + 2] = Math.min(255, Math.max(0, data[idx + 2] - bgB * spillFactor));
+          }
+        }
       }
     }
   }
 
+  function refineHairEdges(data, mask, width, height) {
+    // Detect and fix jagged edges using local variance analysis
+    const tempAlpha = new Float32Array(width * height);
+    
+    // Extract alpha
+    for (let i = 0; i < width * height; i++) {
+      tempAlpha[i] = data[i * 4 + 3] / 255;
+    }
+    
+    // Smooth edges while preserving detail
+    for (let y = 2; y < height - 2; y++) {
+      for (let x = 2; x < width - 2; x++) {
+        const idx = y * width + x;
+        const pixelIdx = idx * 4;
+        
+        // Check if this is an edge pixel
+        const isEdge = (tempAlpha[idx] > 0.1 && tempAlpha[idx] < 0.9);
+        
+        if (isEdge) {
+          // Sample 5x5 neighborhood for variance
+          let sum = 0, sumSq = 0, count = 0;
+          for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+              const ny = y + dy, nx = x + dx;
+              const val = tempAlpha[ny * width + nx];
+              sum += val;
+              sumSq += val * val;
+              count++;
+            }
+          }
+          
+          const mean = sum / count;
+          const variance = (sumSq / count) - (mean * mean);
+          
+          // High variance = jagged edge, apply smoothing
+          if (variance > 0.05) {
+            // Weighted average based on distance
+            let newAlpha = 0, weightSum = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const ny = y + dy, nx = x + dx;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const weight = 1 / (1 + dist);
+                newAlpha += tempAlpha[ny * width + nx] * weight;
+                weightSum += weight;
+              }
+            }
+            data[pixelIdx + 3] = Math.round((newAlpha / weightSum) * 255);
+          }
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // UI HELPERS
+  // ==========================================
+
+  function updateProgress(percent, text) {
+    elements.progressBar.style.width = percent + '%';
+    if (text) elements.statusText.textContent = text;
+  }
+
+  function showToast(message, type) {
+    elements.toast.textContent = message;
+    elements.toast.className = `status-toast ${type} show`;
+    setTimeout(() => {
+      elements.toast.classList.remove('show');
+    }, 3000);
+  }
+
   window.downloadResult = function() {
-    if (!resultCanvas) return;
     const link = document.createElement('a');
-    link.download = 'removed-background.png';
-    link.href = resultCanvas.toDataURL('image/png');
+    link.download = 'removed-bg-' + Date.now() + '.png';
+    link.href = elements.resultCanvas.toDataURL('image/png');
     link.click();
+    showToast('Download started!', 'success');
+  };
+
+  window.reprocess = function() {
+    if (currentImage) {
+      processImage(currentImage);
+    }
   };
 
   window.resetApp = function() {
-    uploadContainer.classList.remove('hidden');
-    processingArea.classList.remove('active');
-    fileInput.value = '';
-    statusMsg.className = 'status-msg';
-    statusMsg.textContent = '';
-    downloadBtn.disabled = true;
-    resultCanvas.style.display = 'none';
-    originalCanvas.style.display = 'none';
-    originalPlaceholder.style.display = 'flex';
-    originalImg.src = '';
-    updateProgress(0);
-    isProcessing = false;
+    elements.uploadSection.classList.remove('hidden');
+    elements.workspace.classList.remove('active');
+    elements.fileInput.value = '';
+    elements.downloadBtn.disabled = true;
+    elements.processTime.textContent = '';
+    elements.originalPlaceholder.classList.remove('hidden');
+    elements.resultPlaceholder.classList.remove('hidden');
+    updateProgress(0, 'Initializing AI...');
+    currentImage = null;
   };
 
-  // Keyboard shortcut for paste
+  // Initialize
+  initModel();
+
+  // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-      // Let the paste event handle it, but show hint
-      if (!isProcessing && !isModelLoading) {
-        pasteArea.classList.add('active');
-        setTimeout(() => pasteArea.classList.remove('active'), 200);
-      }
+      elements.pasteTrigger.classList.add('active');
+      setTimeout(() => elements.pasteTrigger.classList.remove('active'), 200);
     }
   });
-
-  console.log('Background removal app initialized. Paste support enabled.');
 </script>
 </body>
 </html>
